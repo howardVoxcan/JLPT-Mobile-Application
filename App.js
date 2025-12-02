@@ -1,20 +1,48 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import HomeScreen from './src/screens/HomeScreen';
+import VocabularyScreen from './src/screens/VocabularyScreen';
+import FavoritesScreen from './src/screens/FavoritesScreen';
 
 export default function App() {
+  const [currentScreen, setCurrentScreen] = useState('home');
+  const [selectedUnit, setSelectedUnit] = useState(null);
+  
+  const navigate = (screen, params = {}) => {
+    if (screen === 'vocab') {
+      setSelectedUnit(params.unitId);
+    }
+    setCurrentScreen(screen);
+  };
+  
+  const goBack = () => {
+    setCurrentScreen('home');
+  };
+  
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
+    <SafeAreaProvider>
+      {currentScreen === 'home' && (
+        <HomeScreen 
+          navigation={{ navigate }}
+          onGoToFavorites={() => setCurrentScreen('favorites')}
+        />
+      )}
+      
+      {currentScreen === 'vocab' && (
+        <VocabularyScreen 
+          route={{ params: { unitId: selectedUnit } }}
+          navigation={{ goBack }}
+        />
+      )}
+      
+      {currentScreen === 'favorites' && (
+        <FavoritesScreen 
+          onGoBack={() => setCurrentScreen('home')}
+        />
+      )}
+      
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
