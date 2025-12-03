@@ -1,0 +1,164 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { DecorativeBackground } from '../components/DecorativeBackground';
+import { BackButton } from '../components/BackButton';
+import { InputField } from '../components/InputField';
+import { PrimaryButton } from '../components/PrimaryButton';
+import { Colors } from '../constants/Colors';
+import { FontSizes, FontWeights } from '../constants/Fonts';
+import { Spacing } from '../constants/Spacing';
+
+export const LoginScreen = ({ navigation }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = () => {
+    // Mock authentication - bất kỳ email và password nào cũng được
+    // TODO: Thay bằng API thật sau này
+    console.log('Login:', { email, password });
+    
+    // Giả lập đăng nhập thành công
+    if (email && password) {
+      navigation.navigate('Dictionary');
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <DecorativeBackground />
+      
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <BackButton 
+            text="Quay lại trang chủ" 
+            onPress={() => navigation.goBack()} 
+          />
+          
+          <Text style={styles.title}>Đăng nhập</Text>
+          
+          {/* Illustration */}
+          <View style={styles.illustrationContainer}>
+            <View style={styles.illustrationPlaceholder}>
+              <Text style={styles.illustrationText}>👋</Text>
+            </View>
+          </View>
+          
+          <View style={styles.formContainer}>
+            <InputField
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              iconType="email"
+              keyboardType="email-address"
+            />
+            
+            <InputField
+              placeholder="Mật khẩu"
+              value={password}
+              onChangeText={setPassword}
+              iconType="password"
+              secureTextEntry
+            />
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.forgotPassword}
+            onPress={() => navigation.navigate('ForgotPassword')}
+          >
+            <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+          </TouchableOpacity>
+          
+          <View style={styles.buttonContainer}>
+            <PrimaryButton 
+              title="Đăng nhập" 
+              onPress={handleLogin}
+              disabled={!email || !password}
+            />
+          </View>
+          
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Bạn chưa có tài khoản? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+              <Text style={styles.footerLink}>Đăng ký</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.backgroundSecondary,
+  },
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: Spacing.xxl,
+    paddingBottom: Spacing.xxl,
+  },
+  title: {
+    fontSize: FontSizes.xxlarge,
+    fontWeight: FontWeights.bold,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.xl,
+  },
+  illustrationContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.xxl,
+  },
+  illustrationPlaceholder: {
+    width: 139,
+    height: 146,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  illustrationText: {
+    fontSize: 80,
+  },
+  formContainer: {
+    gap: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginBottom: Spacing.xxl,
+    paddingVertical: Spacing.sm,
+  },
+  forgotPasswordText: {
+    fontSize: FontSizes.regular,
+    fontWeight: FontWeights.bold,
+    color: Colors.textSecondary,
+  },
+  buttonContainer: {
+    marginBottom: Spacing.xl,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: FontSizes.regular,
+    fontWeight: FontWeights.regular,
+    color: Colors.textPrimary,
+  },
+  footerLink: {
+    fontSize: FontSizes.regular,
+    fontWeight: FontWeights.bold,
+    color: Colors.primaryHover,
+  },
+});
+
