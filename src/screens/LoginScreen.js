@@ -8,6 +8,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { Colors } from '../constants/Colors';
 import { FontSizes, FontWeights } from '../constants/Fonts';
 import { Spacing } from '../constants/Spacing';
+import MainNavigator from '../navigation/MainNavigator';
 
 export const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -20,7 +21,7 @@ export const LoginScreen = ({ navigation }) => {
     
     // Giả lập đăng nhập thành công
     if (email && password) {
-      navigation.navigate('Dictionary');
+      navigation.navigate('MainNavigator');
     }
   };
 
