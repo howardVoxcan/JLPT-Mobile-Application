@@ -29,6 +29,7 @@ export const MainNavigator = () => {
                 component={DictionaryScreen}
                 options={{ 
                     title: "Từ điển",
+                    headerShown: false,
                     tabBarIcon: ({ color, size }) => (
                         <FontAwesome name="book" size={size} color={color} />
                     ),
@@ -39,6 +40,7 @@ export const MainNavigator = () => {
                 component={StudyNavigator}
                 options={({ route }) => ({ 
                     title: "Học tập",
+                    headerShown: false,
                     tabBarIcon: ({ color, size }) => (
                         <FontAwesome name="graduation-cap" size={size} color={color} />
                     ),
@@ -58,7 +60,6 @@ export const MainNavigator = () => {
                     tabBarStyle: getTabBarVisibility(route)
                         ? {}
                         : { display: "none" },
-                    headerShown: getTabBarVisibility(route),
                 })}
             />
             <Tab.Screen 
