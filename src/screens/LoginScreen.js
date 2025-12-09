@@ -8,7 +8,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { Colors } from '../constants/Colors';
 import { FontSizes, FontWeights } from '../constants/Fonts';
 import { Spacing } from '../constants/Spacing';
-import MainNavigator from '../navigation/MainNavigator';
+import { MainNavigator } from '../navigation/MainNavigator';
 
 export const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
