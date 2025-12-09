@@ -1,11 +1,11 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { SignUpScreen } from '../screens/SignUpScreen';
-import { LoginScreen } from '../screens/LoginScreen';
-import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
-import { OTPInputScreen } from '../screens/OTPInputScreen';
-import { NewPasswordScreen } from '../screens/NewPasswordScreen';
-import { PasswordSuccessScreen } from '../screens/PasswordSuccessScreen';
+import { SignUpScreen } from '../screens/Auth/SignUpScreen';
+import { LoginScreen } from '../screens/Auth/LoginScreen';
+import { ForgotPasswordScreen } from '../screens/Auth/ForgotPasswordScreen';
+import { OTPInputScreen } from '../screens/Auth/OTPInputScreen';
+import { NewPasswordScreen } from '../screens/Auth/NewPasswordScreen';
+import { PasswordSuccessScreen } from '../screens/Auth/PasswordSuccessScreen';
 import { MainNavigator } from './MainNavigator';
 
 const Stack = createNativeStackNavigator();

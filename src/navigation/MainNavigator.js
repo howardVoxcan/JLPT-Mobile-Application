@@ -1,6 +1,6 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { DictionaryScreen } from "../screens/DictionaryScreen";
+import { DictionaryScreen } from "../screens/Dictionary/DictionaryScreen";
 import StudyScreen from "../screens/Study/StudyScreen";
 import { SupportStack } from "./SupportStack";
 import JLPTPracticeCenterScreen from "../screens/JLPTPractice/JLPTPracticeCenterScreen";

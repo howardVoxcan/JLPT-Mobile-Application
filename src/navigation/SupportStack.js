@@ -1,10 +1,10 @@
 import React from "react";
-import { createStackNavigator } from "@react-navigation/stack";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SupportScreen } from "../screens/Support/SupportScreen";
 import { ChatbotScreen } from "../screens/Support/ChatbotScreen";
 import { tabBarOptions } from "./tab.styles";
 
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 
 export const SupportStack = () => {
     return (
