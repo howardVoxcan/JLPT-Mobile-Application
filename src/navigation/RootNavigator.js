@@ -3,7 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import MainNavigator from "../navigation/MainNavigator";
 import { AuthNavigator } from "../navigation/AuthNavigator";
 
-export default function RootNavigator() {
+export const RootNavigator = () => {
     const { userToken } = false; // Thay bằng logic xác thực thật sau này
 
     return (

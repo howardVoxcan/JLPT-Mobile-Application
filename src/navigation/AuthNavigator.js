@@ -6,7 +6,7 @@ import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
 import { OTPInputScreen } from '../screens/OTPInputScreen';
 import { NewPasswordScreen } from '../screens/NewPasswordScreen';
 import { PasswordSuccessScreen } from '../screens/PasswordSuccessScreen';
-import MainNavigator from './MainNavigator';
+import { MainNavigator } from './MainNavigator';
 
 const Stack = createNativeStackNavigator();
 
