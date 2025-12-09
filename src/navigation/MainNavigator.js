@@ -1,10 +1,10 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { DictionaryScreen } from "../screens/Dictionary/DictionaryScreen";
-import StudyScreen from "../screens/Study/StudyScreen";
+import StudyNavigator from "../navigation/StudyNavigator";
 import { SupportStack } from "./SupportStack";
 import JLPTPracticeCenterScreen from "../screens/JLPTPractice/JLPTPracticeCenterScreen";
-import ProfileScreen from "../screens/Profile/ProfileScreen";
+import ProfileNavigator from "../navigation/ProfileNavigator";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 import { tabBarOptions } from "./tab.styles";
@@ -14,7 +14,9 @@ const Tab = createBottomTabNavigator();
 export const MainNavigator = () => {
     const getTabBarVisibility = (route) => {
         const routeName = getFocusedRouteNameFromRoute(route) ?? '';
-        if (routeName === 'Chatbot') {
+        // Hide tab bar for nested screens
+        const hideTabBarScreens = ['Chatbot', 'GrammarLevel', 'GrammarLesson', 'Favorites', 'NotebookDetail'];
+        if (hideTabBarScreens.includes(routeName)) {
             return false;
         }
         return true;
@@ -34,13 +36,16 @@ export const MainNavigator = () => {
             />
             <Tab.Screen 
                 name="Study"
-                component={StudyScreen}
-                options={{ 
+                component={StudyNavigator}
+                options={({ route }) => ({ 
                     title: "Học tập",
                     tabBarIcon: ({ color, size }) => (
                         <FontAwesome name="graduation-cap" size={size} color={color} />
                     ),
-                }} 
+                    tabBarStyle: getTabBarVisibility(route)
+                        ? {}
+                        : { display: "none" },
+                })} 
             />
             <Tab.Screen 
                 name="Support"
@@ -68,13 +73,16 @@ export const MainNavigator = () => {
             />
             <Tab.Screen 
                 name="Profile"
-                component={ProfileScreen}
-                options={{ 
+                component={ProfileNavigator}
+                options={({ route }) => ({ 
                     title: "Cá nhân",
                     tabBarIcon: ({ color, size }) => (
                         <FontAwesome name="user-circle-o" size={size} color={color} />
                     ),
-                }} 
+                    tabBarStyle: getTabBarVisibility(route)
+                        ? {}
+                        : { display: "none" },
+                })} 
             />
         </Tab.Navigator>
     );
