@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
+import { useFavorites } from '../../context/FavoritesContext';
 
 const { width } = Dimensions.get('window');
 
 export default function KanjiFlashcardScreen({ navigation, route }) {
   const { unit = '第1週', lesson = '(1)', level = 'N5' } = route?.params || {};
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [cardState, setCardState] = useState('detail'); // 'detail', 'front', 'back'
+  const { addKanjiFavorite, removeKanjiFavorite, isKanjiFavorite } = useFavorites();
 
   // Mock kanji data - 第1週 (1) - 駐車場
   const week1Lesson1 = [
@@ -38,6 +39,12 @@ export default function KanjiFlashcardScreen({ navigation, route }) {
       kunyomi: 'くるま',
       onyomi: 'シャ',
       meaning: 'xe, xe cộ',
+      vocabulary: {
+        hiragana: 'じどうしゃ',
+        kanji: '自動車',
+        reading: 'TỰ ĐỘNG XA',
+        meaning: 'ô tô',
+      },
     },
     {
       id: '1-3',
@@ -48,6 +55,12 @@ export default function KanjiFlashcardScreen({ navigation, route }) {
       kunyomi: '',
       onyomi: 'ジョウ',
       meaning: 'nơi, chỗ, địa điểm',
+      vocabulary: {
+        hiragana: 'ばしょ',
+        kanji: '場所',
+        reading: 'TRƯỜNG SỞ',
+        meaning: 'địa điểm',
+      },
     },
   ];
 
@@ -62,6 +75,12 @@ export default function KanjiFlashcardScreen({ navigation, route }) {
       kunyomi: 'まなぶ',
       onyomi: 'ガク',
       meaning: 'học, học tập',
+      vocabulary: {
+        hiragana: 'がっこう',
+        kanji: '学校',
+        reading: 'HỌC HIỆU',
+        meaning: 'trường học',
+      },
     },
     {
       id: '2-2',
@@ -72,6 +91,12 @@ export default function KanjiFlashcardScreen({ navigation, route }) {
       kunyomi: '',
       onyomi: 'コウ',
       meaning: 'trường học',
+      vocabulary: {
+        hiragana: 'がっこう',
+        kanji: '学校',
+        reading: 'HỌC HIỆU',
+        meaning: 'trường học',
+      },
     },
   ];
 
@@ -96,10 +121,11 @@ export default function KanjiFlashcardScreen({ navigation, route }) {
   const maxLeft = progressBarWidth - indicatorWidth;
   const indicatorLeft = Math.min((progress / 100) * progressBarWidth - indicatorWidth / 2, maxLeft);
 
+  const isFavorite = isKanjiFavorite(currentKanji?.id);
+
   const handleNext = () => {
     if (currentIndex < totalKanji - 1) {
       setCurrentIndex(currentIndex + 1);
-      setIsFavorite(false);
       setCardState('detail');
     } else {
       // Navigate back to KanjiLevelScreen when completed
@@ -113,7 +139,6 @@ export default function KanjiFlashcardScreen({ navigation, route }) {
   const handlePrevious = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
-      setIsFavorite(false);
       setCardState('detail');
     }
   };
@@ -141,8 +166,11 @@ export default function KanjiFlashcardScreen({ navigation, route }) {
   };
 
   const handleToggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    // TODO: Save to favorites
+    if (isFavorite) {
+      removeKanjiFavorite(currentKanji.id);
+    } else {
+      addKanjiFavorite(currentKanji);
+    }
   };
 
   return (

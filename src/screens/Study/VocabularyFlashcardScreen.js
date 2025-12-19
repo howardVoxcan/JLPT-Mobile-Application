@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { FontSizes, FontWeights } from '../../constants/Fonts';
+import { useFavorites } from '../../context/FavoritesContext';
 
 export default function VocabularyFlashcardScreen({ navigation, route }) {
   const { unit = 'Unit 01', lesson = 'Bài 1', level = 'N5' } = route?.params || {};
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
+  const { addVocabularyFavorite, removeVocabularyFavorite, isVocabularyFavorite } = useFavorites();
 
   // Mock vocabulary data - Unit 01 - Bài 1
   const unit1Lesson1 = [
@@ -112,10 +113,11 @@ export default function VocabularyFlashcardScreen({ navigation, route }) {
   const maxLeft = progressBarWidth - indicatorWidth;
   const indicatorLeft = Math.min((progress / 100) * progressBarWidth - indicatorWidth / 2, maxLeft);
 
+  const isFavorite = isVocabularyFavorite(currentWord?.id);
+
   const handleNext = () => {
     if (currentIndex < totalWords - 1) {
       setCurrentIndex(currentIndex + 1);
-      setIsFavorite(false);
       setIsFlipped(false);
     } else {
       // Navigate back to VocabularyLevelScreen when completed
@@ -129,7 +131,6 @@ export default function VocabularyFlashcardScreen({ navigation, route }) {
   const handlePrevious = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
-      setIsFavorite(false);
       setIsFlipped(false);
     }
   };
@@ -147,8 +148,11 @@ export default function VocabularyFlashcardScreen({ navigation, route }) {
   };
 
   const handleToggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    // TODO: Save to favorites
+    if (isFavorite) {
+      removeVocabularyFavorite(currentWord.id);
+    } else {
+      addVocabularyFavorite(currentWord);
+    }
   };
 
   return (
