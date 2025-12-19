@@ -7,10 +7,15 @@ export default function ListeningLessonScreen({ navigation, route }) {
   const { category = 'Nghe hiểu', level = 'N5', lessonId = 1, title = 'Bài 1: Giới thiệu bản thân' } = route?.params || {};
   const [showScript, setShowScript] = useState(false);
   const [showVocabulary, setShowVocabulary] = useState(false);
+  const [showScriptTranslation, setShowScriptTranslation] = useState(false); // false = Japanese, true = Vietnamese
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration] = useState(150); // 2:30 in seconds
+  const [showResults, setShowResults] = useState(false);
+
+  // Ensure showScriptTranslation is always defined
+  const isShowingTranslation = showScriptTranslation === true;
 
   const handleAnswerSelect = (questionId, answer) => {
     setSelectedAnswers(prev => ({
@@ -26,7 +31,8 @@ export default function ListeningLessonScreen({ navigation, route }) {
   };
 
   // Mock data
-  const script = 'Mỗi khi lòng cảm thấy bộn bề và mệt mỏi, tôi thường tìm về với vòng tay dịu dàng của thiên nhiên. Không gian xanh mướt của cánh đồng lúa, tiếng suối chảy róc rách trong veo, hay sự hùng vĩ lặng lẽ của những rặng núi xa xa luôn có một sức mạnh chữa lành phi thường. Ở đó, không có sự hối hả của cuộc sống hiện đại, chỉ có nhịp điệu chậm rãi, thanh bình của gió, của cây cỏ.';
+  const scriptJP = '若いとき夢中で星座の名前を覚えた。夜空を見上げながら、一つ一つの星の位置を確認し、その美しさに感動した。';
+  const scriptVN = 'Khi còn trẻ, tôi đã say mê học thuộc tên các chòm sao. Tôi ngước nhìn bầu trời đêm, xác nhận vị trí của từng ngôi sao và cảm động trước vẻ đẹp của chúng.';
 
   const vocabulary = [
     { word: '若い', reading: 'わかい', meaning: 'trẻ, trẻ tuổi' },
@@ -46,48 +52,66 @@ export default function ListeningLessonScreen({ navigation, route }) {
         { id: 3, text: 'わかい' },
         { id: 4, text: 'おさない' },
       ],
-      image: null, // Can add image URL later
+      correctAnswer: 3,
+      explanation: '「若い」có nghĩa là "trẻ, trẻ tuổi", đọc là "わかい".',
+      image: null,
     },
     {
       id: 2,
       questionNumber: 'Câu 2:',
       sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '若い',
+      underlinedWord: '夢中',
       options: [
-        { id: 1, text: 'ちいさい' },
-        { id: 2, text: 'すくない' },
-        { id: 3, text: 'わかい' },
-        { id: 4, text: 'おさない' },
+        { id: 1, text: 'むちゅう' },
+        { id: 2, text: 'むじゅう' },
+        { id: 3, text: 'むちゅ' },
+        { id: 4, text: 'むじゅ' },
       ],
+      correctAnswer: 1,
+      explanation: '「夢中」có nghĩa là "say mê, mê mẩn", đọc là "むちゅう".',
       image: null,
     },
     {
       id: 3,
       questionNumber: 'Câu 3:',
       sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '若い',
+      underlinedWord: '星座',
       options: [
-        { id: 1, text: 'ちいさい' },
-        { id: 2, text: 'すくない' },
-        { id: 3, text: 'わかい' },
-        { id: 4, text: 'おさない' },
+        { id: 1, text: 'せいざ' },
+        { id: 2, text: 'せいさ' },
+        { id: 3, text: 'せざ' },
+        { id: 4, text: 'せさ' },
       ],
+      correctAnswer: 1,
+      explanation: '「星座」có nghĩa là "chòm sao", đọc là "せいざ".',
       image: null,
     },
     {
       id: 4,
       questionNumber: 'Câu 4:',
       sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '若い',
+      underlinedWord: '覚えた',
       options: [
-        { id: 1, text: 'ちいさい' },
-        { id: 2, text: 'すくない' },
-        { id: 3, text: 'わかい' },
-        { id: 4, text: 'おさない' },
+        { id: 1, text: 'おぼえた' },
+        { id: 2, text: 'おぼえた' },
+        { id: 3, text: 'おぼえた' },
+        { id: 4, text: 'おぼえた' },
       ],
+      correctAnswer: 1,
+      explanation: '「覚えた」là thể quá khứ của "覚える" (nhớ, học thuộc), đọc là "おぼえた".',
       image: null,
     },
   ];
+
+  const handleSubmit = () => {
+    setShowResults(true);
+  };
+
+  const getQuestionResult = (question) => {
+    const userAnswer = selectedAnswers[question.id];
+    const isCorrect = userAnswer === question.correctAnswer;
+    return { isCorrect, userAnswer };
+  };
 
   return (
     <View style={styles.container}>
@@ -136,7 +160,23 @@ export default function ListeningLessonScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
           {showScript && (
-            <Text style={styles.scriptText}>{script}</Text>
+            <View>
+              <Text style={[
+                styles.scriptText,
+                !isShowingTranslation && styles.scriptTextJP
+              ]}>
+                {isShowingTranslation ? scriptVN : scriptJP}
+              </Text>
+              <TouchableOpacity 
+                style={styles.toggleScriptButton}
+                onPress={() => setShowScriptTranslation(!isShowingTranslation)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.toggleScriptText}>
+                  {isShowingTranslation ? 'Xem bản gốc' : 'Xem bản dịch'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
 
@@ -173,57 +213,134 @@ export default function ListeningLessonScreen({ navigation, route }) {
             <Text style={styles.cardTitle}>Câu hỏi</Text>
           </View>
 
-          {questions.map((q, index) => (
-            <View key={q.id}>
-              {index > 0 && <View style={styles.questionDivider} />}
-              
-              <Text style={styles.questionNumber}>{q.questionNumber}</Text>
-              
-              {q.image && (
-                <Image source={{ uri: q.image }} style={styles.questionImage} resizeMode="contain" />
-              )}
-              
-              <Text style={styles.questionSentence}>
-                {q.sentence.split(q.underlinedWord).map((part, i, arr) => (
-                  <Text key={i}>
-                    {part}
-                    {i < arr.length - 1 && <Text style={styles.underlined}>{q.underlinedWord}</Text>}
-                  </Text>
-                ))}
-              </Text>
-
-              <View style={styles.optionsContainer}>
-                {q.options.map((option, optIndex) => (
-                  <View key={option.id} style={styles.optionRow}>
-                    <Text style={styles.optionNumber}>{String.fromCharCode(0x2460 + optIndex)}</Text>
-                    <Text style={styles.optionText}>{option.text}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.radioButtonsRow}>
-                {[1, 2, 3, 4].map((num) => (
-                  <TouchableOpacity
-                    key={num}
-                    style={styles.radioButtonGroup}
-                    onPress={() => handleAnswerSelect(q.id, num)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[
-                      styles.radioOuter,
-                      selectedAnswers[q.id] === num && styles.radioOuterSelected
-                    ]}>
-                      {selectedAnswers[q.id] === num && (
-                        <View style={styles.radioInner} />
-                      )}
+          {questions.map((q, index) => {
+            const result = showResults ? getQuestionResult(q) : null;
+            const isCorrect = result?.isCorrect;
+            const userAnswer = result?.userAnswer;
+            
+            return (
+              <View key={q.id}>
+                {index > 0 && <View style={styles.questionDivider} />}
+                
+                <View style={styles.questionHeader}>
+                  <Text style={styles.questionNumber}>{q.questionNumber}</Text>
+                  {showResults && (
+                    <View style={[styles.resultBadge, isCorrect ? styles.resultBadgeCorrect : styles.resultBadgeIncorrect]}>
+                      <Text style={styles.resultBadgeText}>{isCorrect ? 'Đúng' : 'Sai'}</Text>
                     </View>
-                    <Text style={styles.radioLabel}>{num}</Text>
-                  </TouchableOpacity>
-                ))}
+                  )}
+                </View>
+                
+                {q.image && (
+                  <Image source={{ uri: q.image }} style={styles.questionImage} resizeMode="contain" />
+                )}
+                
+                <Text style={styles.questionSentence}>
+                  {q.sentence.split(q.underlinedWord).map((part, i, arr) => (
+                    <Text key={i}>
+                      {part}
+                      {i < arr.length - 1 && <Text style={styles.underlined}>{q.underlinedWord}</Text>}
+                    </Text>
+                  ))}
+                </Text>
+
+                <View style={styles.optionsContainer}>
+                  {q.options.map((option, optIndex) => {
+                    const optionNum = optIndex + 1;
+                    const isSelected = selectedAnswers[q.id] === optionNum;
+                    const isCorrectAnswer = showResults && optionNum === q.correctAnswer;
+                    const isWrongAnswer = showResults && isSelected && !isCorrectAnswer;
+                    
+                    return (
+                      <View 
+                        key={option.id} 
+                        style={[
+                          styles.optionRow,
+                          isCorrectAnswer && styles.optionRowCorrect,
+                          isWrongAnswer && styles.optionRowIncorrect
+                        ]}
+                      >
+                        <Text style={styles.optionNumber}>{String.fromCharCode(0x2460 + optIndex)}</Text>
+                        <Text style={styles.optionText}>{option.text}</Text>
+                        {showResults && isCorrectAnswer && (
+                          <Ionicons name="checkmark-circle" size={20} color="#4CAF50" style={styles.resultIcon} />
+                        )}
+                        {showResults && isWrongAnswer && (
+                          <Ionicons name="close-circle" size={20} color="#F44336" style={styles.resultIcon} />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+
+                <View style={styles.radioButtonsRow}>
+                  {[1, 2, 3, 4].map((num) => {
+                    const isSelected = selectedAnswers[q.id] === num;
+                    const isCorrectAnswer = showResults && num === q.correctAnswer;
+                    const isWrongAnswer = showResults && isSelected && !isCorrectAnswer;
+                    
+                    return (
+                      <TouchableOpacity
+                        key={num}
+                        style={styles.radioButtonGroup}
+                        onPress={() => !showResults && handleAnswerSelect(q.id, num)}
+                        activeOpacity={0.7}
+                        disabled={showResults}
+                      >
+                        <View style={[
+                          styles.radioOuter,
+                          isSelected && styles.radioOuterSelected,
+                          isCorrectAnswer && styles.radioOuterCorrect,
+                          isWrongAnswer && styles.radioOuterIncorrect
+                        ]}>
+                          {isSelected && (
+                            <View style={[
+                              styles.radioInner,
+                              isCorrectAnswer && styles.radioInnerCorrect,
+                              isWrongAnswer && styles.radioInnerIncorrect
+                            ]} />
+                          )}
+                        </View>
+                        <Text style={[
+                          styles.radioLabel,
+                          isCorrectAnswer && styles.radioLabelCorrect,
+                          isWrongAnswer && styles.radioLabelIncorrect
+                        ]}>{num}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {showResults && !isCorrect && (
+                  <View style={styles.explanationBox}>
+                    <Text style={styles.explanationText}>{q.explanation}</Text>
+                  </View>
+                )}
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
+
+        {/* Submit Button */}
+        {!showResults && (
+          <TouchableOpacity 
+            style={styles.submitButton}
+            onPress={handleSubmit}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.submitButtonText}>Xem kết quả</Text>
+          </TouchableOpacity>
+        )}
+
+        {showResults && (
+          <TouchableOpacity 
+            style={styles.completeButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.completeButtonText}>Hoàn thành</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -240,37 +357,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 100,
+    alignItems: 'center',
   },
   audioCard: {
-    width: 346,
+    width: 360,
     minHeight: 80,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: '#95D4EB',
     borderRadius: 5,
-    padding: 14,
-    marginBottom: 12,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
     alignSelf: 'center',
   },
   card: {
-    width: 346,
+    width: 360,
     minHeight: 40,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: '#95D4EB',
     borderRadius: 5,
-    padding: 14,
-    marginBottom: 12,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
     alignSelf: 'center',
   },
   cardHeader: {
@@ -338,6 +456,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     color: Colors.textPrimary,
+    marginBottom: 12,
+  },
+  scriptTextJP: {
+    fontFamily: 'Noto Sans JP',
+  },
+  toggleScriptButton: {
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  toggleScriptText: {
+    fontFamily: 'Nunito',
+    fontWeight: '500',
+    fontSize: 14,
+    color: '#446498',
+    textDecorationLine: 'underline',
   },
   vocabularyList: {
     gap: 8,
@@ -366,19 +499,19 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   questionsCard: {
-    width: 346,
+    width: 360,
     minHeight: 820,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: '#95D4EB',
     borderRadius: 5,
-    padding: 14,
-    marginBottom: 12,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
     alignSelf: 'center',
   },
   questionDivider: {
@@ -386,13 +519,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#95D4EB',
     marginVertical: 20,
   },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   questionNumber: {
     fontFamily: 'Nunito',
-    fontWeight: '400',
+    fontWeight: '700',
     fontSize: 16,
     lineHeight: 22,
     color: '#000000',
-    marginBottom: 12,
+  },
+  resultBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  resultBadgeCorrect: {
+    backgroundColor: '#E8F5E9',
+  },
+  resultBadgeIncorrect: {
+    backgroundColor: '#FFEBEE',
+  },
+  resultBadgeText: {
+    fontFamily: 'Nunito',
+    fontWeight: '700',
+    fontSize: 12,
+    color: '#000000',
   },
   questionImage: {
     width: 267.63,
@@ -408,17 +563,36 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: Colors.textPrimary,
     marginBottom: 12,
+    textAlign: 'center',
   },
   underlined: {
     textDecorationLine: 'underline',
   },
   optionsContainer: {
     marginBottom: 12,
+    alignItems: 'center',
   },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    padding: 8,
+    borderRadius: 5,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  optionRowCorrect: {
+    backgroundColor: '#E8F5E9',
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  optionRowIncorrect: {
+    backgroundColor: '#FFEBEE',
+    borderWidth: 1,
+    borderColor: '#F44336',
+  },
+  resultIcon: {
+    marginLeft: 8,
   },
   optionNumber: {
     fontFamily: 'Nunito',
@@ -437,9 +611,11 @@ const styles = StyleSheet.create({
   },
   radioButtonsRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginTop: 8,
-    width: 300,
+    width: '100%',
+    alignSelf: 'center',
   },
   radioButtonGroup: {
     flexDirection: 'row',
@@ -450,9 +626,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   radioOuter: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 1.21,
     borderColor: Colors.textSecondary,
     justifyContent: 'center',
@@ -461,18 +637,99 @@ const styles = StyleSheet.create({
   radioOuterSelected: {
     borderColor: Colors.textPrimary,
   },
+  radioOuterCorrect: {
+    borderColor: '#4CAF50',
+  },
+  radioOuterIncorrect: {
+    borderColor: '#F44336',
+  },
   radioInner: {
-    width: 9.08,
-    height: 9.08,
-    borderRadius: 4.54,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: Colors.textPrimary,
+  },
+  radioInnerCorrect: {
+    backgroundColor: '#4CAF50',
+  },
+  radioInnerIncorrect: {
+    backgroundColor: '#F44336',
   },
   radioLabel: {
     fontFamily: 'Nunito',
     fontWeight: '400',
-    fontSize: 14.5854,
+    fontSize: 18,
     lineHeight: 20,
     color: Colors.textPrimary,
+  },
+  radioLabelCorrect: {
+    color: '#4CAF50',
+    fontWeight: '700',
+  },
+  radioLabelIncorrect: {
+    color: '#F44336',
+    fontWeight: '700',
+  },
+  explanationBox: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: '#FF9800',
+    borderRadius: 5,
+  },
+  explanationText: {
+    fontFamily: 'Nunito',
+    fontWeight: '400',
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.textPrimary,
+  },
+  submitButton: {
+    width: 360,
+    height: 48,
+    backgroundColor: Colors.primary,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
+    alignSelf: 'center',
+  },
+  submitButtonText: {
+    fontFamily: 'Nunito',
+    fontWeight: '700',
+    fontSize: 15,
+    lineHeight: 20,
+    color: Colors.white,
+  },
+  completeButton: {
+    width: 360,
+    height: 48,
+    backgroundColor: '#4CAF50',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
+    alignSelf: 'center',
+  },
+  completeButtonText: {
+    fontFamily: 'Nunito',
+    fontWeight: '700',
+    fontSize: 15,
+    lineHeight: 20,
+    color: Colors.white,
   },
 });
 
