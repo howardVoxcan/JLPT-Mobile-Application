@@ -8,10 +8,6 @@ import { Spacing } from '../../constants/Spacing';
 export const FavoritesScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('vocabulary'); // vocabulary or kanji
 
-  const handleBack = () => {
-    navigation.goBack();
-  };
-
   // Mock data - replace with real data
   const favoriteItems = [
     { id: 1, image: null }, // placeholder for images
@@ -23,18 +19,6 @@ export const FavoritesScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={handleBack}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={20} color={Colors.textSecondary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Danh sách yêu thích</Text>
-      </View>
-
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Tabs */}
         <View style={styles.tabsContainer}>
@@ -135,34 +119,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.backgroundSecondary,
-  },
-  header: {
-    width: '100%',
-    height: 88,
-    backgroundColor: Colors.secondaryLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButton: {
-    position: 'absolute',
-    left: 16,
-    top: 52,
-    width: 20,
-    height: 20,
-  },
-  headerTitle: {
-    position: 'absolute',
-    top: 45,
-    fontFamily: 'Nunito',
-    fontWeight: '700',
-    fontSize: 24,
-    lineHeight: 33,
-    color: Colors.textPrimary,
   },
   scrollView: {
     flex: 1,

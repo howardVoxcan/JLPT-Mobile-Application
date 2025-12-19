@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Image, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Image, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
+
+const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 24;
 
 export const DictionaryHeader = ({ onProfilePress }) => {
   return (
@@ -34,13 +36,13 @@ export const DictionaryHeader = ({ onProfilePress }) => {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    height: 220,
+    height: 220 + STATUSBAR_HEIGHT - 20,
     backgroundColor: Colors.secondaryLight,
-    paddingTop: 22,
+    paddingTop: STATUSBAR_HEIGHT,
     paddingHorizontal: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   logoContainer: {
     width: 80,
@@ -54,6 +56,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    paddingTop: 20,
   },
   flagContainer: {
     width: 32,

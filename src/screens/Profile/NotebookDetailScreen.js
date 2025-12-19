@@ -8,10 +8,6 @@ import { Spacing } from '../../constants/Spacing';
 export const NotebookDetailScreen = ({ navigation, route }) => {
   const { notebookType = 'Từ vựng' } = route?.params || {};
 
-  const handleBack = () => {
-    navigation.goBack();
-  };
-
   const getIconConfig = (type) => {
     switch (type) {
       case 'Từ vựng':
@@ -89,22 +85,10 @@ export const NotebookDetailScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={handleBack}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={20} color={Colors.textSecondary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Sổ tay học tập</Text>
-      </View>
-
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Subtitle */}
         <View style={styles.subtitleContainer}>
-          <MaterialCommunityIcons name="chart-line" size={20} color={Colors.secondaryHover} />
+          <MaterialCommunityIcons name="chart-line" size={20} color={Colors.secondaryHover} style={styles.subtitleIcon} />
           <Text style={styles.subtitle}>
             Theo dõi chi tiết tiến độ từng kỹ năng và cấp độ
           </Text>
@@ -125,12 +109,14 @@ export const NotebookDetailScreen = ({ navigation, route }) => {
         <Text style={styles.sectionTitle}>Chi tiết các cấp độ</Text>
 
         {/* Levels List */}
-        {levels.map((level, index) => (
-          <View key={index} style={[
-            styles.levelCard,
-            level.locked && styles.levelCardLocked,
-            level.status === 'Hoàn thành' && styles.levelCardCompleted
-          ]}>
+        <View style={styles.levelsListContainer}>
+          {levels.map((level, index) => (
+            <View key={index} style={[
+              styles.levelCard,
+              level.locked && styles.levelCardLocked,
+              level.status === 'Hoàn thành' && styles.levelCardCompleted,
+              level.status === 'Đang học' && styles.levelCardInProgress
+            ]}>
             {level.locked ? (
               <>
                 <Ionicons 
@@ -147,15 +133,19 @@ export const NotebookDetailScreen = ({ navigation, route }) => {
               </>
             ) : (
               <>
-                <Ionicons 
-                  name={level.icon} 
-                  size={24} 
-                  color={level.status === 'Hoàn thành' ? Colors.success : '#95D4EB'} 
-                  style={styles.statusIcon}
-                />
+                <View style={[
+                  styles.statusIconContainer,
+                  level.status === 'Hoàn thành' && styles.statusIconContainerCompleted
+                ]}>
+                  <Ionicons 
+                    name={level.icon} 
+                    size={24} 
+                    color={level.status === 'Hoàn thành' ? Colors.secondaryHover : '#95D4EB'} 
+                  />
+                </View>
                 <View style={styles.levelContent}>
                   <View style={styles.levelHeader}>
-                    <View>
+                    <View style={styles.levelInfo}>
                       <Text style={styles.levelText}>{level.level}</Text>
                       <Text style={styles.statusText}>{level.status}</Text>
                     </View>
@@ -194,13 +184,24 @@ export const NotebookDetailScreen = ({ navigation, route }) => {
                 </View>
               </>
             )}
-          </View>
-        ))}
+            </View>
+          ))}
+        </View>
 
-        {/* Study Button */}
-        <View style={styles.studyButtonContainer}>
-          <TouchableOpacity style={styles.studyButton} activeOpacity={0.7}>
-            <Text style={styles.studyButtonText}>Học tập</Text>
+        {/* Continue Learning Card */}
+        <View style={styles.continueLearningCard}>
+          <View style={styles.continueLearningContent}>
+            <Text style={styles.continueLearningTitle}>Tiếp tục học tập</Text>
+            <Text style={styles.continueLearningText}>
+              Hãy duy trì thói quen học mỗi ngày để tiến bộ nhanh hơn!
+            </Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.continueLearningButton} 
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Study')}
+          >
+            <Text style={styles.continueLearningButtonText}>Học tập</Text>
           </TouchableOpacity>
         </View>
 
@@ -216,43 +217,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.backgroundSecondary,
   },
-  header: {
-    width: '100%',
-    height: 88,
-    backgroundColor: Colors.secondaryLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButton: {
-    position: 'absolute',
-    left: 16,
-    top: 52,
-    width: 20,
-    height: 20,
-  },
-  headerTitle: {
-    position: 'absolute',
-    top: 45,
-    fontFamily: 'Nunito',
-    fontWeight: '700',
-    fontSize: 24,
-    lineHeight: 33,
-    color: Colors.textPrimary,
-  },
   scrollView: {
     flex: 1,
   },
   subtitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 21,
-    marginHorizontal: 23,
-    gap: 8,
+    marginTop: 20,
+    marginLeft: 17,
+  },
+  subtitleIcon: {
+    marginRight: 2,
   },
   subtitle: {
     fontFamily: 'Nunito',
@@ -302,7 +277,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   sectionTitle: {
-    marginTop: 8,
+    marginTop: 12,
     marginLeft: 22,
     fontFamily: 'Nunito',
     fontWeight: '400',
@@ -310,26 +285,46 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: '#000000',
   },
+  levelsListContainer: {
+    alignItems: 'center',
+    width: '100%',
+  },
   levelCard: {
-    marginHorizontal: 24,
     marginTop: 14,
-    backgroundColor: Colors.white,
+    width: 346,
+    minHeight: 134,
+    backgroundColor: '#FFFFFF',
     borderRadius: 5,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#95D4EB',
+    borderColor: '#B5EAD7',
+    alignSelf: 'center',
   },
   levelCardCompleted: {
-    borderColor: Colors.secondary,
+    borderColor: '#B5EAD7',
+  },
+  levelCardInProgress: {
+    borderColor: '#95D4EB',
   },
   levelCardLocked: {
     opacity: 0.5,
     borderColor: Colors.textPlaceholder,
   },
-  statusIcon: {
+  statusIconContainer: {
     position: 'absolute',
     top: 16,
     left: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#95D4EB',
+  },
+  statusIconContainerCompleted: {
+    borderColor: '#B5EAD7',
   },
   lockIcon: {
     position: 'absolute',
@@ -337,7 +332,8 @@ const styles = StyleSheet.create({
     left: 14,
   },
   levelContent: {
-    marginLeft: 28,
+    marginLeft: 50,
+    paddingLeft: 0,
   },
   lockedContent: {
     marginLeft: 38,
@@ -346,6 +342,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  levelInfo: {
+    // Container for level text and status
   },
   levelText: {
     fontFamily: 'Nunito',
@@ -384,6 +383,8 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     marginBottom: 8,
+    marginLeft: -50,
+    paddingLeft: 0,
   },
   progressRow: {
     flexDirection: 'row',
@@ -406,13 +407,13 @@ const styles = StyleSheet.create({
   },
   progressBarBg: {
     height: 7,
-    backgroundColor: Colors.formStrokeDefault,
+    backgroundColor: '#E1E1E1',
     borderRadius: 5,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FFB7C5',
     borderRadius: 5,
   },
   lockMessage: {
@@ -423,27 +424,58 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     color: Colors.textSecondary,
   },
-  studyButtonContainer: {
-    alignItems: 'flex-end',
+  continueLearningCard: {
     marginHorizontal: 24,
     marginTop: 16,
+    marginBottom: 20,
+    backgroundColor: '#FFE4DC',
+    borderRadius: 10,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  studyButton: {
-    width: 87,
-    height: 36,
+  continueLearningContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  continueLearningTitle: {
+    fontFamily: 'Nunito',
+    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 22,
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  continueLearningText: {
+    fontFamily: 'Nunito',
+    fontWeight: '400',
+    fontSize: 13,
+    lineHeight: 18,
+    color: Colors.textPrimary,
+  },
+  continueLearningButton: {
     backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: Colors.formStrokeDefault,
-    borderRadius: 5,
+    borderColor: Colors.secondaryHover,
+    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 80,
   },
-  studyButtonText: {
+  continueLearningButtonText: {
     fontFamily: 'Nunito',
     fontWeight: '700',
     fontSize: 13,
     lineHeight: 18,
-    color: Colors.success,
+    color: Colors.secondaryHover,
   },
   bottomSpacer: {
     height: 100,

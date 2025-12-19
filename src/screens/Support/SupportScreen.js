@@ -10,7 +10,7 @@ export const SupportScreen = ({ navigation }) => {
     }
 
     const handlePressShadowing = () => {
-        navigation.navigate('Shadowing');
+        navigation.navigate('ShadowingPractice');
     }
 
     return (

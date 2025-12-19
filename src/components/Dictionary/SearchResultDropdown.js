@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { FontSizes, FontWeights } from '../../constants/Fonts';
 import { Spacing } from '../../constants/Spacing';
@@ -12,6 +12,7 @@ export const SearchResultDropdown = ({ results, onSelectResult }) => {
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
       >
         {results.map((item, index) => (
           <TouchableOpacity
@@ -28,14 +29,11 @@ export const SearchResultDropdown = ({ results, onSelectResult }) => {
                 <Text style={styles.kanjiText}>{item.kanji}</Text>
                 <Text style={styles.hiraganaText}>{item.hiragana}</Text>
               </View>
-              <Text style={styles.meaningText}>{item.meaning}</Text>
+              <Text style={styles.meaningText} numberOfLines={1}>{item.meaning}</Text>
             </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
-      
-      {/* Scrollbar */}
-      <View style={styles.scrollbar} />
     </View>
   );
 };
@@ -49,50 +47,54 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
     maxHeight: 231,
-    position: 'relative',
+    // Shadow for iOS
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    // Elevation for Android
+    elevation: 10,
+    overflow: 'hidden',
   },
   scrollView: {
-    flex: 1,
+    flexGrow: 0,
   },
   resultItem: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    minHeight: 43,
+    justifyContent: 'center',
   },
   resultItemBorder: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.formStroke,
   },
   resultContent: {
-    gap: 4,
+    gap: 3,
   },
   resultHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flexWrap: 'wrap',
   },
   kanjiText: {
     fontSize: 14,
     fontWeight: FontWeights.regular,
     color: Colors.textPrimary,
+    fontFamily: Platform.OS === 'ios' ? 'Nunito' : 'Nunito-Regular',
   },
   hiraganaText: {
     fontSize: 14,
     fontWeight: FontWeights.regular,
     color: Colors.textPrimary,
+    fontFamily: Platform.OS === 'ios' ? 'Nunito' : 'Nunito-Regular',
   },
   meaningText: {
     fontSize: 13,
     fontWeight: FontWeights.regular,
     color: Colors.textSecondary,
-  },
-  scrollbar: {
-    position: 'absolute',
-    right: 1,
-    top: 0,
-    width: 10,
-    height: 40,
-    backgroundColor: '#D9D9D9',
-    borderRadius: 5,
+    fontFamily: Platform.OS === 'ios' ? 'Nunito' : 'Nunito-Regular',
   },
 });
 

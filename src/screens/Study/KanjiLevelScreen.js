@@ -1,28 +1,29 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 
-export default function GrammarLevelScreen({ navigation, route }) {
-  const { category = 'Ngữ pháp', level = 'N5' } = route?.params || {};
+export default function KanjiLevelScreen({ navigation, route }) {
+  const { category = 'Kanji', level = 'N5' } = route?.params || {};
   const [activeFilter, setActiveFilter] = useState('all');
 
-  const handleLessonPress = (lessonId) => {
-    navigation.navigate('GrammarLesson', { 
+  const handleLessonPress = (unit, lesson) => {
+    navigation.navigate('KanjiFlashcard', { 
       category, 
-      level, 
-      lessonId 
+      level,
+      unit,
+      lesson
     });
   };
 
-  // Mock data - danh sách bài học
+  // Mock data - danh sách bài học kanji
   const lessons = [
     {
       id: 1,
-      title: 'Bài 1: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      unit: '第1週',
+      lesson: '(1)',
+      title: '第1週 (1) - 駐車場',
+      kanjiCount: 15,
       status: 'completed',
       progress: 100,
       borderColor: Colors.secondary,
@@ -31,10 +32,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
     },
     {
       id: 2,
-      title: 'Bài 2: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      unit: '第1週',
+      lesson: '(2)',
+      title: '第1週 (2) - 学校',
+      kanjiCount: 18,
       status: 'completed',
       progress: 100,
       borderColor: Colors.secondary,
@@ -43,10 +44,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
     },
     {
       id: 3,
-      title: 'Bài 3: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      unit: '第2週',
+      lesson: '(1)',
+      title: '第2週 (1) - 時間',
+      kanjiCount: 20,
       status: 'in-progress',
       progress: 60,
       borderColor: '#95D4EB',
@@ -55,58 +56,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
     },
     {
       id: 4,
-      title: 'Bài 4: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
-      status: 'in-progress',
-      progress: 60,
-      borderColor: '#95D4EB',
-      buttonText: 'Học tiếp',
-      buttonColor: '#95D4EB',
-    },
-    {
-      id: 5,
-      title: 'Bài 5: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
-      status: 'not-started',
-      progress: 0,
-      borderColor: '#E1E1E1',
-      buttonText: 'Bắt đầu',
-      buttonColor: Colors.primary,
-    },
-    {
-      id: 6,
-      title: 'Bài 6: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
-      status: 'not-started',
-      progress: 0,
-      borderColor: '#E1E1E1',
-      buttonText: 'Bắt đầu',
-      buttonColor: Colors.primary,
-    },
-    {
-      id: 7,
-      title: 'Bài 7: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
-      status: 'not-started',
-      progress: 0,
-      borderColor: '#E1E1E1',
-      buttonText: 'Bắt đầu',
-      buttonColor: Colors.primary,
-    },
-    {
-      id: 8,
-      title: 'Bài 8: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      unit: '第2週',
+      lesson: '(2)',
+      title: '第2週 (2) - 場所',
+      kanjiCount: 22,
       status: 'not-started',
       progress: 0,
       borderColor: '#E1E1E1',
@@ -121,7 +74,6 @@ export default function GrammarLevelScreen({ navigation, route }) {
 
   const totalProgress = (completedCount / lessons.length) * 100;
 
-  // Filter lessons based on activeFilter
   const filteredLessons = lessons.filter(lesson => {
     if (activeFilter === 'all') return true;
     if (activeFilter === 'completed') return lesson.status === 'completed';
@@ -210,36 +162,30 @@ export default function GrammarLevelScreen({ navigation, route }) {
               key={lesson.id}
               style={[styles.lessonCard, { borderColor: lesson.borderColor }]}
               activeOpacity={0.7}
-              onPress={() => handleLessonPress(lesson.id)}
+              onPress={() => handleLessonPress(lesson.unit, lesson.lesson)}
             >
               <View style={styles.lessonHeader}>
                 <Text style={styles.lessonTitle}>{lesson.title}</Text>
                 <TouchableOpacity 
                   style={[styles.actionButton, { backgroundColor: lesson.buttonColor }]}
                   activeOpacity={0.7}
-                  onPress={() => handleLessonPress(lesson.id)}
+                  onPress={() => handleLessonPress(lesson.unit, lesson.lesson)}
                 >
                   <Ionicons name="play" size={16} color={Colors.white} />
                   <Text style={styles.actionButtonText}>{lesson.buttonText}</Text>
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.grammarText}>{lesson.grammar}</Text>
-
               <View style={styles.lessonInfo}>
                 <View style={styles.infoItem}>
-                  <MaterialCommunityIcons name="text-box-outline" size={20} color="#C5B9E8" />
-                  <Text style={styles.infoText}>Ngữ pháp ({lesson.grammarCount})</Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Ionicons name="book-outline" size={20} color="#FFCBA4" />
-                  <Text style={styles.infoText}>Bài tập ({lesson.exerciseCount})</Text>
+                  <Ionicons name="book-outline" size={20} color="#C5B9E8" />
+                  <Text style={styles.infoText}>Kanji ({lesson.kanjiCount})</Text>
                 </View>
               </View>
 
               {lesson.status === 'completed' ? (
                 <View style={styles.completedBadge}>
-                  <Text style={styles.completedText}>✓ Đã hoàn thành bài học và bài tập</Text>
+                  <Text style={styles.completedText}>✓ Đã hoàn thành bài học</Text>
                 </View>
               ) : lesson.status === 'in-progress' ? (
                 <View style={styles.progressSection}>
@@ -407,12 +353,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.white,
   },
-  grammarText: {
-    fontWeight: '400',
-    fontSize: 13,
-    color: '#000000',
-    marginBottom: 10,
-  },
   lessonInfo: {
     flexDirection: 'row',
     gap: 35,
@@ -459,10 +399,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#000000',
   },
-  lessonProgressBarBg: {
+  lessonProgressBarBgGray: {
     width: '100%',
     height: 7,
-    backgroundColor: Colors.formStrokeDefault,
+    backgroundColor: '#E1E1E1',
     borderRadius: 5,
     overflow: 'hidden',
   },
@@ -470,13 +410,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#95D4EB',
     borderRadius: 5,
-  },
-  lessonProgressBarBgGray: {
-    width: '100%',
-    height: 7,
-    backgroundColor: '#E1E1E1',
-    borderRadius: 5,
-    overflow: 'hidden',
   },
   lessonProgressBarFillGray: {
     height: '100%',

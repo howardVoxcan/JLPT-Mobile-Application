@@ -2,17 +2,18 @@ import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Platform, StatusBar } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import ProfileScreen from '../screens/Profile/ProfileScreen';
-import { FavoritesScreen } from '../screens/Profile/FavoritesScreen';
-import { NotebookScreen } from '../screens/Profile/NotebookScreen';
-import { NotebookDetailScreen } from '../screens/Profile/NotebookDetailScreen';
+import JLPTPracticeCenterScreen from '../screens/JLPTPractice/JLPTPracticeCenterScreen';
+import JLPTPracticeLevelScreen from '../screens/JLPTPractice/JLPTPracticeLevelScreen';
+import JLPTPracticeTestScreen from '../screens/JLPTPractice/JLPTPracticeTestScreen';
+import JLPTPracticeResultScreen from '../screens/JLPTPractice/JLPTPracticeResultScreen';
+import JLPTPracticeTestDetailsScreen from '../screens/JLPTPractice/JLPTPracticeTestDetailsScreen';
 import { Colors } from '../constants/Colors';
 import { FontSizes, FontWeights } from '../constants/Fonts';
 
 const Stack = createNativeStackNavigator();
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 24;
 
-// Custom Header giống hệt tab header "Cá nhân"
+// Custom Header giống header "Danh sách yêu thích"
 const CustomHeader = ({ title, navigation }) => (
   <View style={styles.headerContainer}>
     <TouchableOpacity 
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function ProfileNavigator() {
+export default function JLPTPracticeNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
@@ -63,29 +64,37 @@ export default function ProfileNavigator() {
         contentStyle: { backgroundColor: '#FFF9F5' },
       }}
     >
-      <Stack.Screen name="ProfileMain" component={ProfileScreen} />
+      <Stack.Screen name="JLPTPracticeMain" component={JLPTPracticeCenterScreen} />
       <Stack.Screen 
-        name="Favorites" 
-        component={FavoritesScreen}
-        options={({ navigation }) => ({
-          headerShown: true,
-          header: () => <CustomHeader title="Danh sách yêu thích" navigation={navigation} />,
-        })}
-      />
-      <Stack.Screen 
-        name="Notebook" 
-        component={NotebookScreen}
-        options={({ navigation }) => ({
-          headerShown: true,
-          header: () => <CustomHeader title="Sổ tay học tập" navigation={navigation} />,
-        })}
-      />
-      <Stack.Screen 
-        name="NotebookDetail" 
-        component={NotebookDetailScreen}
+        name="JLPTPracticeLevel" 
+        component={JLPTPracticeLevelScreen}
         options={({ navigation, route }) => ({
           headerShown: true,
-          header: () => <CustomHeader title={route.params?.notebookType || "Sổ tay học tập"} navigation={navigation} />,
+          header: () => <CustomHeader title="Thi thử JLPT" navigation={navigation} />,
+        })}
+      />
+      <Stack.Screen 
+        name="JLPTPracticeTest" 
+        component={JLPTPracticeTestScreen}
+        options={({ navigation, route }) => ({
+          headerShown: true,
+          header: () => <CustomHeader title={`Test ${route.params?.testId || 1}`} navigation={navigation} />,
+        })}
+      />
+      <Stack.Screen 
+        name="JLPTPracticeResult" 
+        component={JLPTPracticeResultScreen}
+        options={({ navigation, route }) => ({
+          headerShown: true,
+          header: () => <CustomHeader title={`Kết quả Test ${route.params?.testId || 1}`} navigation={navigation} />,
+        })}
+      />
+      <Stack.Screen 
+        name="JLPTPracticeTestDetails" 
+        component={JLPTPracticeTestDetailsScreen}
+        options={({ navigation, route }) => ({
+          headerShown: true,
+          header: () => <CustomHeader title="Chi tiết đáp án" navigation={navigation} />,
         })}
       />
     </Stack.Navigator>

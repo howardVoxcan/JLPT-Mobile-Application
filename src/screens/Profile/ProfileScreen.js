@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Platform, StatusBar } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { FontSizes, FontWeights } from '../../constants/Fonts';
 import { Spacing } from '../../constants/Spacing';
+
+const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 24;
 
 export default function ProfileScreen({ navigation }) {
   const handleBack = () => {
@@ -42,20 +44,7 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={20} color={Colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
-
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Title */}
-        <Text style={styles.title}>Tài khoản người học</Text>
 
         {/* User Info Section */}
         <View style={styles.section}>
@@ -124,14 +113,24 @@ export default function ProfileScreen({ navigation }) {
 
         {/* Notebook Section */}
         <View style={styles.notebookSection}>
-          <View style={styles.notebookHeader}>
+          <TouchableOpacity
+            style={styles.notebookHeader}
+            onPress={() => navigation.navigate('Notebook')}
+            activeOpacity={0.7}
+          >
             <MaterialCommunityIcons
               name="notebook-outline"
               size={32}
               color={Colors.secondaryHover}
             />
             <Text style={styles.menuText}>Sổ tay học tập</Text>
-          </View>
+            <Ionicons
+              name="chevron-forward"
+              size={30}
+              color={Colors.secondaryHover}
+              style={styles.chevronIcon}
+            />
+          </TouchableOpacity>
 
           {notebooks.map((row, rowIndex) => (
             <View key={rowIndex} style={styles.notebookRow}>
@@ -166,38 +165,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.backgroundSecondary,
   },
-  header: {
-    width: '100%',
-    height: 88,
-    backgroundColor: Colors.secondaryLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButton: {
-    position: 'absolute',
-    left: 16,
-    top: 52,
-    width: 20,
-    height: 20,
-  },
   scrollView: {
     flex: 1,
-  },
-  title: {
-    width: 225,
-    height: 33,
-    marginLeft: 84,
-    marginTop: 17,
-    fontFamily: 'Nunito',
-    fontWeight: '700',
-    fontSize: 24,
-    lineHeight: 33,
-    color: Colors.textPrimary,
   },
   section: {
     backgroundColor: Colors.white,

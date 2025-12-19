@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { DictionaryHeader } from '../../components/Dictionary/DictionaryHeader';
 import { SearchBar } from '../../components/Dictionary/SearchBar';
 import { DictionaryTabs } from '../../components/Dictionary/DictionaryTabs';
@@ -48,12 +47,25 @@ export const DictionaryScreen = ({ navigation }) => {
     setSearchQuery(text);
     
     if (text.trim().length > 0) {
-      // Simulate search
+      // Simulate search - match partial text
       const lowerText = text.toLowerCase();
+      
+      // Check exact match first
       if (mockResults[lowerText]) {
         setSearchResults(mockResults[lowerText]);
       } else {
-        setSearchResults([]);
+        // Check if text starts with any key
+        const matchedKey = Object.keys(mockResults).find(key => 
+          key.startsWith(lowerText) || lowerText.startsWith(key)
+        );
+        if (matchedKey) {
+          setSearchResults(mockResults[matchedKey]);
+        } else if (text.length >= 1) {
+          // Show default results for any input >= 1 char for testing
+          setSearchResults(mockResults['hi']);
+        } else {
+          setSearchResults([]);
+        }
       }
     } else {
       setSearchResults([]);
@@ -65,16 +77,17 @@ export const DictionaryScreen = ({ navigation }) => {
   };
 
   const handleBlur = () => {
-    // Keep focused if there are results
-    if (searchResults.length === 0) {
+    // Delay để cho phép click vào dropdown trước khi đóng
+    setTimeout(() => {
       setIsFocused(false);
-    }
+    }, 150);
   };
 
   const handleSelectResult = (result) => {
     console.log('Selected:', result);
     setIsFocused(false);
-    setSearchResults([]);
+    setSearchQuery(result.kanji);
+    // Không clear searchResults để giữ lại nếu user focus lại
   };
 
   const getSuggestionText = () => {
@@ -92,83 +105,92 @@ export const DictionaryScreen = ({ navigation }) => {
     }
   };
 
+  // Hiển thị dropdown khi ĐANG FOCUS và có kết quả
+  const showDropdown = isFocused && searchResults.length > 0;
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <View style={styles.container}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+        style={styles.keyboardView}
       >
+        {/* Header - Fixed */}
+        <DictionaryHeader onProfilePress={handleProfilePress} />
+
+        {/* Search Container */}
+        <View style={styles.searchContainer}>
+          {/* Search Card with SearchBar, Tabs and Dropdown */}
+          <View style={[styles.searchCard, showDropdown && styles.searchCardActive]}>
+            {/* Search Bar */}
+            <View style={styles.searchBarWrapper}>
+              <SearchBar
+                value={searchQuery}
+                onChangeText={handleSearch}
+                placeholder={
+                  activeTab === 'vocabulary' ? 'Nhật Bản, nihon, 日本' :
+                  activeTab === 'grammar' ? 'が, nhưng' :
+                  activeTab === 'kanji' ? '日, NHẬT' :
+                  '日本語は面白いです。'
+                }
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                isFocused={showDropdown}
+              />
+            </View>
+            
+            {/* Tabs - Luôn hiển thị */}
+            <View style={styles.tabsWrapper}>
+              <DictionaryTabs 
+                activeTab={activeTab} 
+                onTabChange={setActiveTab} 
+              />
+            </View>
+
+            {/* Search Results Dropdown - Bên trong searchCard, position absolute */}
+            {showDropdown && (
+              <View style={styles.dropdownOverlay}>
+                <SearchResultDropdown
+                  results={searchResults}
+                  onSelectResult={handleSelectResult}
+                />
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Scrollable Content */}
         <ScrollView 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <DictionaryHeader onProfilePress={handleProfilePress} />
-
-          {/* Search Container */}
-          <View style={styles.searchContainer}>
-            <View style={styles.searchCard}>
-
-
-              {/* Search Bar */}
-              <View style={styles.searchBarWrapper}>
-                <SearchBar
-                  value={searchQuery}
-                  onChangeText={handleSearch}
-                  placeholder={
-                    activeTab === 'vocabulary' ? 'Nhật Bản, nihon, 日本' :
-                    activeTab === 'grammar' ? 'が, nhưng' :
-                    activeTab === 'kanji' ? '日, NHẬT' :
-                    '日本語は面白いです。'
-                  }
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                  isFocused={isFocused && searchResults.length > 0}
-                />
-                
-                {/* Search Results Dropdown */}
-                {isFocused && searchResults.length > 0 && (
-                  <SearchResultDropdown
-                    results={searchResults}
-                    onSelectResult={handleSelectResult}
-                  />
-                )}
-              </View>
-              {/* Tabs */}
-              <View style={styles.tabsWrapper}>
-                <DictionaryTabs 
-                  activeTab={activeTab} 
-                  onTabChange={setActiveTab} 
-                />
-              </View>
-            </View>
-          </View>
-
           {/* Suggestions */}
           <Text style={styles.suggestionText}>
             {getSuggestionText()}
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: Colors.backgroundSecondary,
   },
-  container: {
+  keyboardView: {
     flex: 1,
   },
   scrollContent: {
     paddingBottom: 80,
+    paddingTop: Spacing.md,
   },
   searchContainer: {
-    marginTop: -50,
+    marginTop: -110,
     paddingHorizontal: 21,
+    zIndex: 1000,
+    elevation: 1000,
   },
   searchCard: {
     backgroundColor: Colors.white,
@@ -178,19 +200,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 5,
     elevation: 5,
-    overflow: 'visible',
+    overflow: 'visible', // Cho phép dropdown hiển thị ra ngoài
+  },
+  searchCardActive: {
+    // Khi dropdown active, giảm shadow
+    shadowOpacity: 0.1,
   },
   tabsWrapper: {
     paddingHorizontal: 10,
-    paddingTop: 51,
     paddingBottom: 8,
+    alignItems: 'center',
   },
   searchBarWrapper: {
     paddingHorizontal: Spacing.sm,
-    paddingBottom: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+  dropdownOverlay: {
+    position: 'absolute',
+    top: 46, // paddingTop (8) + SearchBar height (38) = 46, kết nối trực tiếp với SearchBar
+    left: Spacing.sm, // 8 - align với searchBarWrapper paddingHorizontal
+    right: Spacing.sm, // 8
+    zIndex: 9999,
+    elevation: 9999,
   },
   suggestionText: {
-    marginTop: Spacing.xl,
+    marginTop: Spacing.md,
     marginHorizontal: 14,
     fontSize: FontSizes.medium,
     fontWeight: FontWeights.regular,
@@ -198,4 +232,3 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
-

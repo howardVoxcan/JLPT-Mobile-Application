@@ -3,15 +3,16 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 
-export default function GrammarLevelScreen({ navigation, route }) {
-  const { category = 'Ngữ pháp', level = 'N5' } = route?.params || {};
+export default function ListeningLevelScreen({ navigation, route }) {
+  const { category = 'Nghe hiểu', level = 'N5' } = route?.params || {};
   const [activeFilter, setActiveFilter] = useState('all');
 
-  const handleLessonPress = (lessonId) => {
-    navigation.navigate('GrammarLesson', { 
+  const handleLessonPress = (lessonId, lessonTitle) => {
+    navigation.navigate('ListeningLesson', { 
       category, 
       level, 
-      lessonId 
+      lessonId,
+      title: lessonTitle
     });
   };
 
@@ -20,9 +21,8 @@ export default function GrammarLevelScreen({ navigation, route }) {
     {
       id: 1,
       title: 'Bài 1: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      description: 'Nghe và hiểu các đoạn giới thiệu cơ bản về bản thân',
+      duration: '2 phút 30 giây',
       status: 'completed',
       progress: 100,
       borderColor: Colors.secondary,
@@ -32,9 +32,8 @@ export default function GrammarLevelScreen({ navigation, route }) {
     {
       id: 2,
       title: 'Bài 2: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      description: 'Nghe và hiểu các đoạn giới thiệu cơ bản về bản thân',
+      duration: '2 phút 30 giây',
       status: 'completed',
       progress: 100,
       borderColor: Colors.secondary,
@@ -44,9 +43,8 @@ export default function GrammarLevelScreen({ navigation, route }) {
     {
       id: 3,
       title: 'Bài 3: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
+      duration: '2 phút 30 giây',
       status: 'in-progress',
       progress: 60,
       borderColor: '#95D4EB',
@@ -56,9 +54,8 @@ export default function GrammarLevelScreen({ navigation, route }) {
     {
       id: 4,
       title: 'Bài 4: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
+      duration: '2 phút 30 giây',
       status: 'in-progress',
       progress: 60,
       borderColor: '#95D4EB',
@@ -68,9 +65,8 @@ export default function GrammarLevelScreen({ navigation, route }) {
     {
       id: 5,
       title: 'Bài 5: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
+      duration: '2 phút 30 giây',
       status: 'not-started',
       progress: 0,
       borderColor: '#E1E1E1',
@@ -80,9 +76,8 @@ export default function GrammarLevelScreen({ navigation, route }) {
     {
       id: 6,
       title: 'Bài 6: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
+      duration: '2 phút 30 giây',
       status: 'not-started',
       progress: 0,
       borderColor: '#E1E1E1',
@@ -92,9 +87,8 @@ export default function GrammarLevelScreen({ navigation, route }) {
     {
       id: 7,
       title: 'Bài 7: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
+      duration: '2 phút 30 giây',
       status: 'not-started',
       progress: 0,
       borderColor: '#E1E1E1',
@@ -104,9 +98,8 @@ export default function GrammarLevelScreen({ navigation, route }) {
     {
       id: 8,
       title: 'Bài 8: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
+      duration: '2 phút 30 giây',
       status: 'not-started',
       progress: 0,
       borderColor: '#E1E1E1',
@@ -159,7 +152,7 @@ export default function GrammarLevelScreen({ navigation, route }) {
                 <Text style={styles.statText}>{inProgressCount} đang học</Text>
               </View>
               <View style={styles.statItem}>
-                <Ionicons name="book-outline" size={20} color={Colors.textPlaceholder} />
+                <Ionicons name="headset-outline" size={20} color={Colors.textPlaceholder} />
                 <Text style={styles.statText}>{notStartedCount} chưa học</Text>
               </View>
             </View>
@@ -210,36 +203,30 @@ export default function GrammarLevelScreen({ navigation, route }) {
               key={lesson.id}
               style={[styles.lessonCard, { borderColor: lesson.borderColor }]}
               activeOpacity={0.7}
-              onPress={() => handleLessonPress(lesson.id)}
+              onPress={() => handleLessonPress(lesson.id, lesson.title)}
             >
               <View style={styles.lessonHeader}>
                 <Text style={styles.lessonTitle}>{lesson.title}</Text>
                 <TouchableOpacity 
                   style={[styles.actionButton, { backgroundColor: lesson.buttonColor }]}
                   activeOpacity={0.7}
-                  onPress={() => handleLessonPress(lesson.id)}
+                  onPress={() => handleLessonPress(lesson.id, lesson.title)}
                 >
                   <Ionicons name="play" size={16} color={Colors.white} />
                   <Text style={styles.actionButtonText}>{lesson.buttonText}</Text>
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.grammarText}>{lesson.grammar}</Text>
+              <Text style={styles.descriptionText}>{lesson.description}</Text>
 
-              <View style={styles.lessonInfo}>
-                <View style={styles.infoItem}>
-                  <MaterialCommunityIcons name="text-box-outline" size={20} color="#C5B9E8" />
-                  <Text style={styles.infoText}>Ngữ pháp ({lesson.grammarCount})</Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Ionicons name="book-outline" size={20} color="#FFCBA4" />
-                  <Text style={styles.infoText}>Bài tập ({lesson.exerciseCount})</Text>
-                </View>
+              <View style={styles.durationRow}>
+                <Ionicons name="headset-outline" size={18} color="#95D4EB" />
+                <Text style={styles.durationText}>{lesson.duration}</Text>
               </View>
 
               {lesson.status === 'completed' ? (
                 <View style={styles.completedBadge}>
-                  <Text style={styles.completedText}>✓ Đã hoàn thành bài học và bài tập</Text>
+                  <Text style={styles.completedText}>✓ Đã hoàn thành bài nghe và các câu hỏi</Text>
                 </View>
               ) : lesson.status === 'in-progress' ? (
                 <View style={styles.progressSection}>
@@ -407,23 +394,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.white,
   },
-  grammarText: {
+  descriptionText: {
     fontWeight: '400',
     fontSize: 13,
     color: '#000000',
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  lessonInfo: {
-    flexDirection: 'row',
-    gap: 35,
-    marginBottom: 10,
-  },
-  infoItem: {
+  durationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
+    marginBottom: 10,
   },
-  infoText: {
+  durationText: {
     fontWeight: '400',
     fontSize: 13,
     color: '#000000',

@@ -3,15 +3,16 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 
-export default function GrammarLevelScreen({ navigation, route }) {
-  const { category = 'Ngữ pháp', level = 'N5' } = route?.params || {};
+export default function ReadingLevelScreen({ navigation, route }) {
+  const { category = 'Đọc hiểu', level = 'N5' } = route?.params || {};
   const [activeFilter, setActiveFilter] = useState('all');
 
-  const handleLessonPress = (lessonId) => {
-    navigation.navigate('GrammarLesson', { 
+  const handleLessonPress = (lessonId, lessonTitle) => {
+    navigation.navigate('ReadingLesson', { 
       category, 
       level, 
-      lessonId 
+      lessonId,
+      title: lessonTitle
     });
   };
 
@@ -19,10 +20,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
   const lessons = [
     {
       id: 1,
-      title: 'Bài 1: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      title: '第1部 - 文体',
+      reading: '文体, 文体, 文体',
+      readingCount: 3,
+      exerciseCount: 3,
       status: 'completed',
       progress: 100,
       borderColor: Colors.secondary,
@@ -31,10 +32,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
     },
     {
       id: 2,
-      title: 'Bài 2: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      title: '第2部 - 文体',
+      reading: '文体, 文体, 文体',
+      readingCount: 3,
+      exerciseCount: 3,
       status: 'completed',
       progress: 100,
       borderColor: Colors.secondary,
@@ -43,10 +44,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
     },
     {
       id: 3,
-      title: 'Bài 3: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      title: '第3部 - 文体',
+      reading: '文体, 文体, 文体',
+      readingCount: 3,
+      exerciseCount: 3,
       status: 'in-progress',
       progress: 60,
       borderColor: '#95D4EB',
@@ -55,10 +56,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
     },
     {
       id: 4,
-      title: 'Bài 4: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      title: '第4部 - 文体',
+      reading: '文体, 文体, 文体',
+      readingCount: 3,
+      exerciseCount: 3,
       status: 'in-progress',
       progress: 60,
       borderColor: '#95D4EB',
@@ -67,10 +68,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
     },
     {
       id: 5,
-      title: 'Bài 5: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      title: '第5部 - 文体',
+      reading: '文体, 文体, 文体',
+      readingCount: 3,
+      exerciseCount: 3,
       status: 'not-started',
       progress: 0,
       borderColor: '#E1E1E1',
@@ -79,10 +80,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
     },
     {
       id: 6,
-      title: 'Bài 6: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      title: '第6部 - 文体',
+      reading: '文体, 文体, 文体',
+      readingCount: 3,
+      exerciseCount: 3,
       status: 'not-started',
       progress: 0,
       borderColor: '#E1E1E1',
@@ -91,10 +92,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
     },
     {
       id: 7,
-      title: 'Bài 7: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      title: '第7部 - 文体',
+      reading: '文体, 文体, 文体',
+      readingCount: 3,
+      exerciseCount: 3,
       status: 'not-started',
       progress: 0,
       borderColor: '#E1E1E1',
@@ -103,10 +104,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
     },
     {
       id: 8,
-      title: 'Bài 8: Giới thiệu bản thân',
-      grammar: 'は, です, か, は, です, か',
-      grammarCount: 4,
-      exerciseCount: 4,
+      title: '第8部 - 文体',
+      reading: '文体, 文体, 文体',
+      readingCount: 3,
+      exerciseCount: 3,
       status: 'not-started',
       progress: 0,
       borderColor: '#E1E1E1',
@@ -210,26 +211,26 @@ export default function GrammarLevelScreen({ navigation, route }) {
               key={lesson.id}
               style={[styles.lessonCard, { borderColor: lesson.borderColor }]}
               activeOpacity={0.7}
-              onPress={() => handleLessonPress(lesson.id)}
+              onPress={() => handleLessonPress(lesson.id, lesson.title)}
             >
               <View style={styles.lessonHeader}>
                 <Text style={styles.lessonTitle}>{lesson.title}</Text>
                 <TouchableOpacity 
                   style={[styles.actionButton, { backgroundColor: lesson.buttonColor }]}
                   activeOpacity={0.7}
-                  onPress={() => handleLessonPress(lesson.id)}
+                  onPress={() => handleLessonPress(lesson.id, lesson.title)}
                 >
                   <Ionicons name="play" size={16} color={Colors.white} />
                   <Text style={styles.actionButtonText}>{lesson.buttonText}</Text>
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.grammarText}>{lesson.grammar}</Text>
+              <Text style={styles.readingText}>{lesson.reading}</Text>
 
               <View style={styles.lessonInfo}>
                 <View style={styles.infoItem}>
                   <MaterialCommunityIcons name="text-box-outline" size={20} color="#C5B9E8" />
-                  <Text style={styles.infoText}>Ngữ pháp ({lesson.grammarCount})</Text>
+                  <Text style={styles.infoText}>Đọc hiểu ({lesson.readingCount})</Text>
                 </View>
                 <View style={styles.infoItem}>
                   <Ionicons name="book-outline" size={20} color="#FFCBA4" />
@@ -407,7 +408,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.white,
   },
-  grammarText: {
+  readingText: {
     fontWeight: '400',
     fontSize: 13,
     color: '#000000',

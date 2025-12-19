@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 
@@ -8,10 +7,7 @@ export default function GrammarLessonScreen({ navigation, route }) {
   const { category = 'Ngữ pháp', level = 'N5', lessonId = 1 } = route?.params || {};
   const [activeTab, setActiveTab] = useState('grammar'); // 'grammar' or 'practice'
   const [selectedAnswers, setSelectedAnswers] = useState({});
-
-  const handleBack = () => {
-    navigation.goBack();
-  };
+  const [showResults, setShowResults] = useState(false);
 
   const handleAnswerSelect = (questionId, answer) => {
     setSelectedAnswers(prev => ({
@@ -97,10 +93,54 @@ export default function GrammarLessonScreen({ navigation, route }) {
 
   // Mock practice questions
   const practiceQuestions = [
-    { id: 1, question: '問題１〜５ の文について、あとの １・２・３・４ の中からいちばんいいものを 一つ 選（えら）び なさい。', correctAnswer: 2 },
-    { id: 2, question: '問題１〜５ の文について、あとの １・２・３・４ の中からいちばんいいものを 一つ 選（えら）び なさい。', correctAnswer: 2 },
-    { id: 3, question: '問題１〜５ の文について、あとの １・２・３・４ の中からいちばんいいものを 一つ 選（えら）び なさい。', correctAnswer: 2 },
-    { id: 4, question: '問題１〜５ の文について、あとの １・２・３・４ の中からいちばんいいものを 一つ 選（えら）び なさい。', correctAnswer: 2 },
+    {
+      id: 1,
+      questionNumber: 'Câu 1',
+      sentence: '問題＿＿＿の読み方として最もよいものを、１・２・３・４から一つ選びなさい。',
+      options: [
+        { id: 1, text: '選択肢１' },
+        { id: 2, text: '選択肢２' },
+        { id: 3, text: '選択肢３' },
+        { id: 4, text: '選択肢４' },
+      ],
+      correctAnswer: 2,
+    },
+    {
+      id: 2,
+      questionNumber: 'Câu 2',
+      sentence: '問題＿＿＿の読み方として最もよいものを、１・２・３・４から一つ選びなさい。',
+      options: [
+        { id: 1, text: '選択肢１' },
+        { id: 2, text: '選択肢２' },
+        { id: 3, text: '選択肢３' },
+        { id: 4, text: '選択肢４' },
+      ],
+      correctAnswer: 3,
+    },
+    {
+      id: 3,
+      questionNumber: 'Câu 3',
+      sentence: '問題＿＿＿の読み方として最もよいものを、１・２・３・４から一つ選びなさい。',
+      options: [
+        { id: 1, text: '選択肢１' },
+        { id: 2, text: '選択肢２' },
+        { id: 3, text: '選択肢３' },
+        { id: 4, text: '選択肢４' },
+      ],
+      correctAnswer: 1,
+    },
+    {
+      id: 4,
+      questionNumber: 'Câu 4',
+      sentence: '問題＿＿＿の読み方として最もよいものを、１・２・３・４から一つ選びなさい。',
+      options: [
+        { id: 1, text: '選択肢１' },
+        { id: 2, text: '選択肢２' },
+        { id: 3, text: '選択肢３' },
+        { id: 4, text: '選択肢４' },
+      ],
+      correctAnswer: 4,
+    },
   ];
 
   const renderGrammarTab = () => (
@@ -179,61 +219,149 @@ export default function GrammarLessonScreen({ navigation, route }) {
     </ScrollView>
   );
 
-  const renderPracticeTab = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      {/* Instructions */}
-      <View style={styles.instructionsBox}>
-        <Text style={styles.instructionsText}>
-          問題１〜５ の文について、あとの １・２・３・４ の中からいちばんいいものを 一つ 選（えら）び なさい。
-        </Text>
-      </View>
+  const handleSubmit = () => {
+    setShowResults(true);
+  };
 
-      {/* Questions */}
-      {practiceQuestions.map((q) => (
-        <View key={q.id} style={styles.questionBox}>
-          <View style={styles.optionsRow}>
-            {[1, 2, 3, 4].map((option) => (
-              <TouchableOpacity
-                key={option}
-                style={styles.optionButton}
-                onPress={() => handleAnswerSelect(q.id, option)}
-                activeOpacity={0.7}
-              >
-                <View style={[
-                  styles.radioOuter,
-                  selectedAnswers[q.id] === option && styles.radioOuterSelected
-                ]}>
-                  {selectedAnswers[q.id] === option && (
-                    <View style={styles.radioInner} />
+  const renderPracticeTab = () => {
+    if (showResults) {
+      return (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {practiceQuestions.map((q) => {
+            const isCorrect = selectedAnswers[q.id] === q.correctAnswer;
+            const correctOption = q.options.find(opt => opt.id === q.correctAnswer);
+            const userOption = q.options.find(opt => opt.id === selectedAnswers[q.id]);
+
+            return (
+              <View key={q.id} style={styles.questionCard}>
+                <View style={styles.questionHeader}>
+                  <Text style={styles.questionNumber}>{q.questionNumber}</Text>
+                  {isCorrect ? (
+                    <View style={styles.correctBadge}>
+                      <Ionicons name="checkmark-circle" size={20} color="#7FDEAD" />
+                      <Text style={styles.correctText}>Đúng</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.incorrectBadge}>
+                      <Ionicons name="close-circle" size={20} color="#FF6B6B" />
+                      <Text style={styles.incorrectText}>Sai</Text>
+                    </View>
                   )}
                 </View>
-                <Text style={styles.optionText}>{option}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      ))}
 
-      <View style={{ height: 20 }} />
-    </ScrollView>
-  );
+                <Text style={styles.sentence}>{q.sentence}</Text>
+
+                <View style={styles.optionsContainer}>
+                  {q.options.map((option, index) => {
+                    const isUserAnswer = option.id === selectedAnswers[q.id];
+                    const isCorrectAnswer = option.id === q.correctAnswer;
+                    let optionStyle = styles.optionRow;
+                    let optionTextStyle = styles.optionText;
+
+                    if (isCorrectAnswer) {
+                      optionStyle = [styles.optionRow, styles.correctOption];
+                      optionTextStyle = [styles.optionText, styles.correctOptionText];
+                    } else if (isUserAnswer && !isCorrectAnswer) {
+                      optionStyle = [styles.optionRow, styles.incorrectOption];
+                      optionTextStyle = [styles.optionText, styles.incorrectOptionText];
+                    }
+
+                    return (
+                      <View key={option.id} style={optionStyle}>
+                        <Text style={styles.optionNumber}>{String.fromCharCode(0x2460 + index)}</Text>
+                        <Text style={optionTextStyle}>{option.text}</Text>
+                        {isCorrectAnswer && (
+                          <Ionicons name="checkmark-circle" size={18} color="#7FDEAD" style={styles.optionIcon} />
+                        )}
+                        {isUserAnswer && !isCorrectAnswer && (
+                          <Ionicons name="close-circle" size={18} color="#FF6B6B" style={styles.optionIcon} />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {!isCorrect && (
+                  <View style={styles.explanationBox}>
+                    <Text style={styles.explanationTitle}>Đáp án đúng:</Text>
+                    <Text style={styles.explanationText}>
+                      {String.fromCharCode(0x2460 + q.options.findIndex(opt => opt.id === q.correctAnswer))} {correctOption?.text}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+          <View style={{ height: 20 }} />
+        </ScrollView>
+      );
+    }
+
+    return (
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Instruction Box */}
+        <View style={styles.instructionBox}>
+          <Text style={styles.instructionText}>
+            問題１〜５ の文について、あとの １・２・３・４ の中からいちばんいいものを 一つ 選（えら）び なさい。
+          </Text>
+        </View>
+
+        {/* Questions */}
+        {practiceQuestions.map((q) => (
+          <View key={q.id} style={styles.questionCard}>
+            <Text style={[styles.questionNumber, styles.questionNumberMargin]}>{q.questionNumber}</Text>
+            
+            <Text style={styles.sentence}>{q.sentence}</Text>
+
+            <View style={styles.optionsContainer}>
+              {q.options.map((option, index) => (
+                <View key={option.id} style={styles.optionRow}>
+                  <Text style={styles.optionNumber}>{String.fromCharCode(0x2460 + index)}</Text>
+                  <Text style={styles.optionText}>{option.text}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.radioButtonsRow}>
+              {[1, 2, 3, 4].map((num) => (
+                <TouchableOpacity
+                  key={num}
+                  style={styles.radioButtonGroup}
+                  onPress={() => handleAnswerSelect(q.id, num)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[
+                    styles.radioOuter,
+                    selectedAnswers[q.id] === num && styles.radioOuterSelected
+                  ]}>
+                    {selectedAnswers[q.id] === num && (
+                      <View style={styles.radioInner} />
+                    )}
+                  </View>
+                  <Text style={styles.radioLabel}>{num}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
+
+        {/* Submit Button */}
+        <TouchableOpacity 
+          style={styles.submitButton}
+          onPress={handleSubmit}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.submitButtonText}>Nộp bài</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 20 }} />
+      </ScrollView>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={handleBack}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={20} color={Colors.textSecondary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{category} {level}</Text>
-        </View>
-
-        {/* Content Card */}
+    <View style={styles.container}>
+      {/* Content Card */}
         <View style={styles.contentCard}>
           {/* Tabs */}
           <View style={styles.tabsContainer}>
@@ -264,42 +392,14 @@ export default function GrammarLessonScreen({ navigation, route }) {
             {activeTab === 'grammar' ? renderGrammarTab() : renderPracticeTab()}
           </View>
         </View>
-      </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.backgroundSecondary,
-  },
   container: {
     flex: 1,
-  },
-  header: {
-    width: '100%',
-    height: 88,
-    backgroundColor: Colors.secondaryLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButton: {
-    position: 'absolute',
-    left: 16,
-    top: 52,
-    width: 20,
-    height: 20,
-  },
-  headerTitle: {
-    fontWeight: '700',
-    fontSize: 24,
-    color: Colors.textPrimary,
+    backgroundColor: Colors.backgroundSecondary,
   },
   contentCard: {
     flex: 1,
@@ -461,43 +561,173 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: 2,
   },
-  instructionsBox: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    padding: 12,
+  scrollContent: {
+    paddingTop: 0,
+    paddingBottom: 100,
+    width: '100%',
+    alignItems: 'center',
+  },
+  instructionBox: {
+    width: 360,
+    minHeight: 70,
     backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: Colors.formStrokeDefault,
+    borderColor: '#000000',
     borderRadius: 10,
+    padding: 10,
+    marginBottom: 20,
+    alignSelf: 'center',
   },
-  instructionsText: {
+  instructionText: {
+    fontFamily: 'Noto Sans JP',
     fontWeight: '700',
     fontSize: 14,
-    lineHeight: 19,
+    lineHeight: 17,
     color: Colors.textPrimary,
   },
-  questionBox: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
+  questionCard: {
+    width: 360,
+    minHeight: 228,
     backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.formStrokeDefault,
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 20,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  optionsRow: {
+  questionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  optionButton: {
+  questionNumber: {
+    fontFamily: 'Nunito',
+    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 22,
+    color: Colors.textPrimary,
+  },
+  questionNumberMargin: {
+    marginBottom: 8,
+  },
+  correctBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
+  },
+  correctText: {
+    fontFamily: 'Nunito',
+    fontWeight: '600',
+    fontSize: 14,
+    color: '#7FDEAD',
+  },
+  incorrectBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  incorrectText: {
+    fontFamily: 'Nunito',
+    fontWeight: '600',
+    fontSize: 14,
+    color: '#FF6B6B',
+  },
+  sentence: {
+    fontFamily: 'Noto Sans JP',
+    fontWeight: '400',
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.textPrimary,
+    marginBottom: 12,
+  },
+  optionsContainer: {
+    marginBottom: 12,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    padding: 8,
+  },
+  correctOption: {
+    backgroundColor: 'rgba(127, 222, 173, 0.1)',
+    borderRadius: 5,
+  },
+  correctOptionText: {
+    color: '#7FDEAD',
+    fontWeight: '600',
+  },
+  incorrectOption: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderRadius: 5,
+  },
+  incorrectOptionText: {
+    color: '#FF6B6B',
+    fontWeight: '600',
+  },
+  optionNumber: {
+    fontFamily: 'Nunito',
+    fontWeight: '400',
+    fontSize: 16,
+    color: Colors.textPrimary,
+    marginRight: 8,
+    minWidth: 20,
+  },
+  optionText: {
+    fontFamily: 'Nunito',
+    fontWeight: '400',
+    fontSize: 16,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  optionIcon: {
+    marginLeft: 8,
+  },
+  explanationBox: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: 'rgba(127, 222, 173, 0.1)',
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#7FDEAD',
+  },
+  explanationTitle: {
+    fontFamily: 'Nunito',
+    fontWeight: '700',
+    fontSize: 14,
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  explanationText: {
+    fontFamily: 'Nunito',
+    fontWeight: '400',
+    fontSize: 14,
+    color: Colors.textPrimary,
+  },
+  radioButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginTop: 8,
+    width: 300,
+  },
+  radioButtonGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginRight: 24,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
   },
   radioOuter: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 1.21,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
     borderColor: Colors.textSecondary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -506,15 +736,40 @@ const styles = StyleSheet.create({
     borderColor: Colors.textPrimary,
   },
   radioInner: {
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: Colors.textPrimary,
   },
-  optionText: {
+  radioLabel: {
+    fontFamily: 'Nunito',
     fontWeight: '400',
-    fontSize: 14,
+    fontSize: 18,
+    lineHeight: 24,
     color: Colors.textPrimary,
+  },
+  submitButton: {
+    width: 200,
+    height: 48,
+    backgroundColor: Colors.primary,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  submitButtonText: {
+    fontFamily: 'Nunito',
+    fontWeight: '700',
+    fontSize: 15,
+    lineHeight: 20,
+    color: Colors.white,
   },
 });
 

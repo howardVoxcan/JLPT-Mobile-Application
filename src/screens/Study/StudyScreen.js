@@ -1,16 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, StatusBar } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
+
+const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 24;
 
 export default function StudyScreen({ navigation }) {
   const handleProfilePress = () => {
     navigation.navigate('Profile');
   };
   const handleLevelPress = (category, level) => {
-    // Navigate to GrammarLevel screen with category and level
-    navigation.navigate('GrammarLevel', { category, level });
+    // Navigate to appropriate level screen based on category
+    if (category === 'Từ vựng') {
+      navigation.navigate('VocabularyLevel', { category, level });
+    } else if (category === 'Kanji') {
+      navigation.navigate('KanjiLevel', { category, level });
+    } else if (category === 'Đọc hiểu') {
+      navigation.navigate('ReadingLevel', { category, level });
+    } else if (category === 'Nghe hiểu') {
+      navigation.navigate('ListeningLevel', { category, level });
+    } else {
+      navigation.navigate('GrammarLevel', { category, level });
+    }
   };
 
   const renderLevelButton = (title, color, marginTop = 10, category) => (
@@ -38,8 +49,7 @@ export default function StudyScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.container}>
+    <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <Image 
@@ -97,7 +107,7 @@ export default function StudyScreen({ navigation }) {
           'Đọc hiểu',
           'document-text',
           '#D4CF73',
-          ['Đọc hiểu N5', 'Đọc hiểu N4', 'Đọc hiểu N3', 'Đọc hiểu N2', 'Ngữ pháp N1'],
+          ['Đọc hiểu N5', 'Đọc hiểu N4', 'Đọc hiểu N3', 'Đọc hiểu N2', 'Đọc hiểu N1'],
           'rgba(255, 244, 163, 0.5)'
         )}
 
@@ -106,31 +116,27 @@ export default function StudyScreen({ navigation }) {
           'Nghe hiểu',
           'headset',
           '#446498',
-          ['Đọc hiểu N5', 'Đọc hiểu N4', 'Đọc hiểu N3', 'Đọc hiểu N2', 'Ngữ pháp N1'],
+          ['Nghe hiểu N5', 'Nghe hiểu N4', 'Nghe hiểu N3', 'Nghe hiểu N2', 'Nghe hiểu N1'],
           'rgba(149, 212, 235, 0.5)'
         )}
 
           <View style={{ height: 20 }} />
         </ScrollView>
-      </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: Colors.backgroundSecondary,
   },
-  container: {
-    flex: 1,
-  },
   header: {
     width: '100%',
-    height: 100,
+    height: 100 + STATUSBAR_HEIGHT - 20,
     backgroundColor: Colors.secondaryLight,
     paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingTop: STATUSBAR_HEIGHT,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -165,9 +171,8 @@ const styles = StyleSheet.create({
     color: '#343232',
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingVertical: 5,
     paddingHorizontal: 15,
-    paddingTop: 20,
   },
   section: {
     marginTop: 20,
