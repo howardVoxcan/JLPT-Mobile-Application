@@ -1,116 +1,64 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-} from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../../constants/Colors";
-import { FontSizes, FontWeights } from "../../constants/Fonts";
-import { Spacing } from "../../constants/Spacing";
-import { getMe } from "../../services/authService";
-import { ActivityIndicator } from "react-native";
+import React, { useState } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Platform, StatusBar } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Colors } from '../../constants/Colors';
+import { FontSizes, FontWeights } from '../../constants/Fonts';
+import { Spacing } from '../../constants/Spacing';
+
+const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 24;
 
 export default function ProfileScreen({ navigation }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchMe = async () => {
-      try {
-        const data = await getMe();
-        if (mounted) setUser(data);
-      } catch (error) {
-        console.log("Failed to load profile:", error);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    fetchMe();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
+  const handleBack = () => {
+    navigation.goBack();
+  };
 
   const handleNavigateToSection = (section) => {
-    console.log("Navigate to:", section);
-    if (section === "favorites") {
-      navigation.navigate("Favorites");
-    } else if (section === "settings") {
+    console.log('Navigate to:', section);
+    if (section === 'favorites') {
+      navigation.navigate('Favorites');
+    } else if (section === 'settings') {
       // TODO: Navigate to settings
-      console.log("Settings not implemented yet");
-    } else if (section === "switch-user") {
+      console.log('Settings not implemented yet');
+    } else if (section === 'switch-user') {
       // TODO: Navigate to switch user
-      console.log("Switch user not implemented yet");
+      console.log('Switch user not implemented yet');
     }
   };
 
   const notebooks = [
     [
-      { title: "Từ vựng", level: user?.vocab_level },
-      { title: "Kanji", level: user?.kanji_level },
-      { title: "Ngữ pháp", level: user?.grammar_level },
+      { title: 'Từ vựng', level: 'N3' },
+      { title: 'Kanji', level: 'N4' },
+      { title: 'Ngữ pháp', level: 'N3' },
     ],
     [
-      { title: "Đọc hiểu", level: user?.reading_level },
-      { title: "Nghe hiểu", level: user?.listening_level },
-      { title: "Thi JLPT", level: user?.exam_level },
+      { title: 'Đọc hiểu', level: 'N5' },
+      { title: 'Nghe Hiểu', level: 'N5' },
+      { title: 'Thi JLPT', level: 'N5' },
     ],
   ];
 
   const handleNotebookPress = (notebookTitle) => {
-    navigation.navigate("NotebookDetail", { notebookType: notebookTitle });
+    navigation.navigate('NotebookDetail', { notebookType: notebookTitle });
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Title */}
-        <Text style={styles.title}>Tài khoản người học</Text>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
         {/* User Info Section */}
         <View style={styles.section}>
           <View style={styles.userInfo}>
-            <View>
-              {user?.avatar ? (
-                <Image
-                  source={{ uri: user.avatar }}
-                  style={styles.userIconContainer}
-                />
-              ) : (
-                <Ionicons
-                  name="person-circle-outline"
-                  size={64}
-                  color="#000000"
-                />
-              )}
+            <View style={styles.userIconContainer}>
+              <Ionicons name="person-circle-outline" size={64} color="#000000" />
             </View>
             <View style={styles.userDetails}>
-              <Text style={styles.userName}>
-                {user?.full_name || "Người học"}
-              </Text>
+              <Text style={styles.userName}>Nguyễn Văn A</Text>
               <Text style={styles.userSubtext}>Thông tin tài khoản</Text>
             </View>
             <TouchableOpacity
               style={styles.switchUserButton}
-              onPress={() => handleNavigateToSection("switch-user")}
+              onPress={() => handleNavigateToSection('switch-user')}
               activeOpacity={0.7}
             >
               <MaterialCommunityIcons
@@ -126,7 +74,7 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => handleNavigateToSection("favorites")}
+            onPress={() => handleNavigateToSection('favorites')}
             activeOpacity={0.7}
           >
             <MaterialCommunityIcons
@@ -145,7 +93,7 @@ export default function ProfileScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => handleNavigateToSection("settings")}
+            onPress={() => handleNavigateToSection('settings')}
             activeOpacity={0.7}
           >
             <Ionicons
@@ -165,14 +113,24 @@ export default function ProfileScreen({ navigation }) {
 
         {/* Notebook Section */}
         <View style={styles.notebookSection}>
-          <View style={styles.notebookHeader}>
+          <TouchableOpacity
+            style={styles.notebookHeader}
+            onPress={() => navigation.navigate('Notebook')}
+            activeOpacity={0.7}
+          >
             <MaterialCommunityIcons
               name="notebook-outline"
               size={32}
               color={Colors.secondaryHover}
             />
             <Text style={styles.menuText}>Sổ tay học tập</Text>
-          </View>
+            <Ionicons
+              name="chevron-forward"
+              size={30}
+              color={Colors.secondaryHover}
+              style={styles.chevronIcon}
+            />
+          </TouchableOpacity>
 
           {notebooks.map((row, rowIndex) => (
             <View key={rowIndex} style={styles.notebookRow}>
@@ -207,71 +165,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.backgroundSecondary,
   },
-  header: {
-    width: "100%",
-    height: 88,
-    backgroundColor: Colors.secondaryLight,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backButton: {
-    position: "absolute",
-    left: 16,
-    top: 52,
-    width: 20,
-    height: 20,
-  },
   scrollView: {
     flex: 1,
-  },
-  title: {
-    width: 225,
-    height: 33,
-    marginLeft: 84,
-    marginTop: 17,
-    fontFamily: "Nunito",
-    fontWeight: "700",
-    fontSize: 24,
-    lineHeight: 33,
-    color: Colors.textPrimary,
   },
   section: {
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "rgba(225, 225, 225, 0.5)",
+    borderColor: 'rgba(225, 225, 225, 0.5)',
     marginTop: 7,
   },
   userInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 68,
     paddingHorizontal: 26,
   },
   userIconContainer: {
     width: 64,
     height: 64,
-    borderRadius: 32,
   },
   userDetails: {
     marginLeft: 7,
     flex: 1,
   },
   userName: {
-    fontFamily: "Nunito",
-    fontWeight: "400",
+    fontFamily: 'Nunito',
+    fontWeight: '400',
     fontSize: 17,
     lineHeight: 23,
     color: Colors.textPrimary,
   },
   userSubtext: {
-    fontFamily: "Nunito",
-    fontWeight: "400",
+    fontFamily: 'Nunito',
+    fontWeight: '400',
     fontSize: 13,
     lineHeight: 18,
     color: Colors.textSecondary,
@@ -279,18 +206,18 @@ const styles = StyleSheet.create({
   switchUserButton: {
     width: 16,
     height: 16,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 64,
     paddingLeft: 42,
   },
   menuText: {
-    fontFamily: "Nunito",
-    fontWeight: "400",
+    fontFamily: 'Nunito',
+    fontWeight: '400',
     fontSize: 17,
     lineHeight: 23,
     color: Colors.textPrimary,
@@ -304,19 +231,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "rgba(225, 225, 225, 0.5)",
+    borderColor: 'rgba(225, 225, 225, 0.5)',
     marginTop: 7,
     paddingBottom: 16,
   },
   notebookHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 64,
     paddingLeft: 42,
   },
   notebookRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     paddingHorizontal: 46,
     marginBottom: 11,
   },
@@ -332,8 +259,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.formStrokeDefault,
     borderTopLeftRadius: 4,
     borderTopRightRadius: 4,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   notebookBottom: {
     height: 20,
@@ -343,24 +270,24 @@ const styles = StyleSheet.create({
     borderColor: Colors.formStrokeDefault,
     borderBottomLeftRadius: 4,
     borderBottomRightRadius: 4,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   notebookTitle: {
-    fontFamily: "Nunito",
-    fontWeight: "400",
+    fontFamily: 'Nunito',
+    fontWeight: '400',
     fontSize: 13,
     lineHeight: 18,
-    color: "#000000",
-    textAlign: "center",
+    color: '#000000',
+    textAlign: 'center',
   },
   notebookLevel: {
-    fontFamily: "Nunito",
-    fontWeight: "400",
+    fontFamily: 'Nunito',
+    fontWeight: '400',
     fontSize: 13,
     lineHeight: 18,
-    color: "#000000",
-    textAlign: "center",
+    color: '#000000',
+    textAlign: 'center',
   },
   bottomSpacer: {
     height: 100,

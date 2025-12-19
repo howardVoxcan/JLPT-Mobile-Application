@@ -146,25 +146,6 @@ export default function GrammarLevelScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBack}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={20}
-              color={Colors.textSecondary}
-            />
-          </TouchableOpacity>
-
-          <Text style={styles.headerTitle}>
-            {SKILL_LABELS[skill]} {level}
-          </Text>
-        </View>
-
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
