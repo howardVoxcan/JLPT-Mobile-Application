@@ -8,6 +8,7 @@ import { PrimaryButton } from '../../components/Auth/PrimaryButton';
 import { Colors } from '../../constants/Colors';
 import { FontSizes, FontWeights } from '../../constants/Fonts';
 import { Spacing } from '../../constants/Spacing';
+import { register } from '../../services/authService';
 
 export const SignUpScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -15,8 +16,33 @@ export const SignUpScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleSignUp = () => {
-    console.log('Sign up:', { name, email, password, confirmPassword });
+  const handleSignUp = async () => {
+    try {
+      await register({ name, email, password, confirmPassword });
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "MainNavigator" }],
+      });
+    } catch (error) {
+      const data = error.response?.data;
+
+      let message = "Đăng ký thất bại";
+
+      if (data) {
+        if (data.full_name) {
+          message = data.full_name[0];
+        } else if (data.email) {
+          message = data.email[0];
+        } else if (data.password) {
+          message = data.password[0];
+        } else if (data.confirm_password) {
+          message = data.confirm_password[0];
+        }
+      }
+
+      alert(message);
+    }
   };
 
   return (
@@ -76,7 +102,7 @@ export const SignUpScreen = ({ navigation }) => {
             <PrimaryButton 
               title="Đăng ký" 
               onPress={handleSignUp}
-              disabled={!name || !email || !password || !confirmPassword}
+              // disabled={!name || !email || !password || !confirmPassword}
             />
           </View>
           

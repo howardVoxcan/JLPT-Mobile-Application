@@ -12,18 +12,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
+import { useChatbot } from "../../hooks/useChatbot";
 
 export const ChatbotScreen = () => {
-    const [messages, setMessages] = useState([
-        {
-        id: 1,
-        text: 'Chào bạn! Ở học tiếng Nhật tôi một hành trình thú vị đây. Bước đầu tiên và quan trọng nhất là bạn viết tập trung vào việc học bảng chữ cái.',
-        isBot: true,
-        timestamp: new Date()
-        }
-    ]);
-
-    const [inputText, setInputText] = useState('');
+    const { messages, sendMessage, loading } = useChatbot();
+    const [inputText, setInputText] = useState("");
 
     const suggestions = [
             "Phân biệt giúp tôi 'は' (wa) và 'が' (ga)",
@@ -33,30 +26,13 @@ export const ChatbotScreen = () => {
         ];
 
     const handleSuggestionPress = (text) => {
-        setInputText(text);  
+        sendMessage(text);
     };
 
-    const sendMessage = () => {
-        if (inputText.trim()) {
-        const newMessage = {
-            id: messages.length + 1,
-            text: inputText,
-            isBot: false,
-            timestamp: new Date()
-        };
-        setMessages([...messages, newMessage]);
-        setInputText('');
-        
-        setTimeout(() => {
-            const botResponse = {
-            id: messages.length + 2,
-            text: 'Cảm ơn bạn đã nhắn tin! Tôi sẽ cố gắng hỗ trợ bạn tốt nhất có thể.',
-            isBot: true,
-            timestamp: new Date()
-            };
-            setMessages(prev => [...prev, botResponse]);
-        }, 1000);
-        }
+    const handleSend = () => {
+        if (!inputText.trim()) return;
+        sendMessage(inputText);
+        setInputText("");
     };
 
     return (
@@ -68,7 +44,7 @@ export const ChatbotScreen = () => {
                     Bạn có thắc mắc cần giải đáp? Hãy chat với tôi nhé.
                 </Text>
                 {messages.map((message) => (
-                <View key={message.id} style={[
+                <View key={`${message.id}-${message.timestamp}`} style={[
                     styles.messageContainer,
                     message.isBot ? styles.botMessage : styles.userMessage
                 ]}>
@@ -126,7 +102,7 @@ export const ChatbotScreen = () => {
                         onChangeText={setInputText}
                         multiline
                     />
-                    <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+                    <TouchableOpacity style={styles.sendButton} onPress={handleSend} disabled={loading}>
                         <Ionicons name="send" size={20} color="#666" />
                     </TouchableOpacity>
                 </View>

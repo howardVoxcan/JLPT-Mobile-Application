@@ -8,21 +8,24 @@ import { PrimaryButton } from '../../components/Auth/PrimaryButton';
 import { Colors } from '../../constants/Colors';
 import { FontSizes, FontWeights } from '../../constants/Fonts';
 import { Spacing } from '../../constants/Spacing';
+import { login } from '../../services/authService';
 
 export const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    // Mock authentication - bất kỳ email và password nào cũng được
-    // TODO: Thay bằng API thật sau này
-    console.log('Login:', { email, password });
-    
-    // Giả lập đăng nhập thành công
-    if (email && password) {
-      navigation.navigate('MainNavigator');
-    }
-  };
+  const handleLogin = async () => {
+  try {
+    await login(email, password);
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "MainNavigator" }],
+    });
+  } catch (error) {
+    alert("Email hoặc mật khẩu không đúng");
+  }
+};
+
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
