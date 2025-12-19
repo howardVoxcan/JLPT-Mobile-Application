@@ -75,7 +75,7 @@ export const FavoritesScreen = ({ navigation }) => {
           }}
           activeOpacity={0.7}
         >
-          <Ionicons name="heart" size={22} color="#FF9FB0" />
+          <Ionicons name="heart" size={28} color="#FF9FB0" />
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -124,7 +124,7 @@ export const FavoritesScreen = ({ navigation }) => {
           }}
           activeOpacity={0.7}
         >
-          <Ionicons name="heart" size={22} color="#FF9FB0" />
+          <Ionicons name="heart" size={28} color="#FF9FB0" />
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -581,9 +581,12 @@ const styles = StyleSheet.create({
   },
   favoritesList: {
     marginHorizontal: 13,
-    marginTop: 24,
+    marginTop: 20,
+    alignItems: 'center',
   },
   favoriteItem: {
+    width: '100%',
+    maxWidth: 367,
     minHeight: 85,
     backgroundColor: Colors.white,
     borderWidth: 1,
@@ -591,24 +594,36 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 10,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    position: 'relative',
   },
   itemContent: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingRight: 50, // Space for heart button
   },
   kanjiItemContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingRight: 50, // Space for heart button
   },
   itemNumber: {
     fontFamily: 'Nunito',
     fontWeight: '400',
     fontSize: 16,
     color: Colors.textPrimary,
-    marginRight: 12,
+    marginRight: 16,
+    minWidth: 24,
+    textAlign: 'center',
   },
   wordContent: {
     flex: 1,
@@ -618,95 +633,116 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     fontSize: 12,
     color: Colors.textSecondary,
-    marginBottom: 2,
+    marginBottom: 4,
+    lineHeight: 16,
   },
   kanjiText: {
     fontFamily: 'Noto Sans JP',
     fontWeight: '400',
     fontSize: 20,
     color: Colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: 6,
+    lineHeight: 28,
   },
   vietnameseReading: {
     fontFamily: 'Nunito',
     fontWeight: '700',
     fontSize: 14,
     color: Colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: 4,
+    lineHeight: 20,
   },
   meaning: {
     fontFamily: 'Nunito',
     fontWeight: '400',
     fontSize: 13,
     color: Colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 6,
+    lineHeight: 18,
   },
   exampleContainer: {
-    marginTop: 4,
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
   exampleJP: {
     fontFamily: 'Noto Sans JP',
     fontWeight: '400',
     fontSize: 12,
     color: Colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: 4,
+    lineHeight: 16,
   },
   exampleVN: {
     fontFamily: 'Nunito',
     fontWeight: '400',
     fontSize: 12,
     color: Colors.textSecondary,
+    lineHeight: 16,
   },
   kanjiColumn: {
-    width: 50,
+    width: 60,
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 16,
+    justifyContent: 'center',
   },
   kanjiLarge: {
     fontFamily: 'Noto Sans JP',
     fontWeight: '400',
-    fontSize: 28,
+    fontSize: 32,
     color: '#7A3E9E',
-    marginBottom: 4,
+    marginBottom: 6,
+    lineHeight: 40,
   },
   kanjiVietnamese: {
     fontFamily: 'Nunito',
     fontWeight: '400',
     fontSize: 12,
     color: '#7A3E9E',
+    lineHeight: 16,
   },
   readingsColumn: {
-    width: 100,
-    marginRight: 12,
+    width: 110,
+    marginRight: 16,
+    justifyContent: 'center',
   },
   readingLabel: {
     fontFamily: 'Nunito',
     fontWeight: '400',
     fontSize: 11,
     color: Colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 6,
+    lineHeight: 15,
   },
   examplesColumn: {
     flex: 1,
+    justifyContent: 'center',
   },
   exampleWord: {
     fontFamily: 'Noto Sans JP',
     fontWeight: '400',
     fontSize: 11,
     color: Colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: 4,
+    lineHeight: 15,
   },
   exampleMeaning: {
     fontFamily: 'Nunito',
     fontWeight: '400',
     fontSize: 11,
     color: Colors.textSecondary,
+    lineHeight: 15,
   },
   heartButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
   emptyState: {
     padding: 40,
