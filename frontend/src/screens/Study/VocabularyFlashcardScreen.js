@@ -121,10 +121,7 @@ export default function VocabularyFlashcardScreen({ navigation, route }) {
       setIsFlipped(false);
     } else {
       // Navigate back to VocabularyLevelScreen when completed
-      navigation.navigate('VocabularyLevel', {
-        category: route?.params?.category,
-        level: route?.params?.level,
-      });
+      navigation.goBack();
     }
   };
 
