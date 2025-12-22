@@ -129,10 +129,7 @@ export default function KanjiFlashcardScreen({ navigation, route }) {
       setCardState('detail');
     } else {
       // Navigate back to KanjiLevelScreen when completed
-      navigation.navigate('KanjiLevel', {
-        category: route?.params?.category,
-        level: route?.params?.level,
-      });
+      navigation.goBack();
     }
   };
 
