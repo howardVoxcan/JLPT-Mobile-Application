@@ -1,305 +1,258 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/Colors';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "../../constants/Colors";
+import {
+  getReadingLessonDetail,
+  submitReadingAnswer,
+} from "../../services/readingService";
 
 export default function ReadingLessonScreen({ navigation, route }) {
-  const { category = 'Đọc hiểu', level = 'N5', lessonId = 1 } = route?.params || {};
+  const { lessonId } = route.params;
+
+  const [lesson, setLesson] = useState(null);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showResults, setShowResults] = useState(false);
-  const [showOriginal, setShowOriginal] = useState(false);
 
-  const handleAnswerSelect = (answer) => {
-    setSelectedAnswer(answer);
+  // ✅ mặc định hiển thị tiếng Nhật
+  const [showOriginal, setShowOriginal] = useState(true);
+
+  const [correctAnswerId, setCorrectAnswerId] = useState(null);
+
+  useEffect(() => {
+    loadLesson();
+  }, []);
+
+  const loadLesson = async () => {
+    try {
+      const data = await getReadingLessonDetail(lessonId);
+      setLesson(data);
+    } catch (err) {
+      console.error("Load lesson failed", err);
+    }
   };
 
-  const handleSubmit = () => {
-    setShowResults(true);
+  const question = lesson?.questions?.[0];
+
+  const handleSubmit = async () => {
+    try {
+      const res = await submitReadingAnswer(
+        question.id,
+        selectedAnswer
+      );
+      setCorrectAnswerId(res.correct_choice_id);
+      setShowResults(true);
+    } catch (err) {
+      console.error("Submit answer failed", err);
+    }
   };
 
-  const handleShowCorrectAnswer = () => {
-    setSelectedAnswer(correctAnswer);
-    setShowResults(true);
-  };
-
-  // Mock reading data
-  const readingText = {
-    vietnamese: 'Mỗi khi lòng cảm thấy bộn bề và mệt mỏi, tôi thường tìm về với vòng tay dịu dàng của thiên nhiên. Không gian xanh mướt của cánh đồng lúa, tiếng suối chảy róc rách trong veo, hay sự hùng vĩ lặng lẽ của những rặng núi xa xa luôn có một sức mạnh chữa lành phi thường. Ở đó, không có sự hối hả của cuộc sống hiện đại, chỉ có nhịp điệu chậm rãi, thanh bình của gió, của cây cỏ.',
-    japanese: '室びめルて直約ヒクリマ需所よ誌済ホウア院注ロ中20分つびくん左目さ換権2県ひゆトン広木そ太桂ヘ聞壊層恐ッは。葉り準示サマミヘ催月クコレ変講意コナヘユ外残石きねしぐ南作新存モキチヒ記担カ続男びおひだ局寝レケヤエ原幻60講ざ台索異喜栄あも。改ニマ作前流所ケサヱコ歳96使け置画ドあ京覧ゃさクほ際鹿フ再読かわ対責倉エムフユ隊復オラシフ目右たッす生黒比健り。',
-  };
-
-  const question = {
-    id: 1,
-    text: '問１：この文章の内容とあっているものはどれか。',
-    options: [
-      { id: 1, text: '日本語では、書き言葉と話し言語の文体がよく似ている。' },
-      { id: 2, text: '日本語では、書き言葉と話し言語の文体がよく似ている。' },
-      { id: 3, text: '日本語では、書き言葉と話し言語の文体がよく似ている。' },
-      { id: 4, text: '日本語では、書き言葉と話し言語の文体がよく似ている。' },
-    ],
-  };
-
-  const correctAnswer = 2;
-
-  const isCorrect = selectedAnswer === correctAnswer;
+  if (!lesson) return null;
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Text Box */}
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+
+        {/* =====================
+            READING TEXT
+        ===================== */}
         <View style={styles.textBox}>
-          <Text style={styles.textContent}>
-            {showOriginal ? readingText.japanese : readingText.vietnamese}
+          <Text style={styles.readingText}>
+            {showOriginal
+              ? lesson.readings[0].content_japanese
+              : lesson.readings[0].content_vietnamese}
           </Text>
-          <TouchableOpacity 
-            style={styles.toggleLink}
+
+          <TouchableOpacity
+            style={styles.toggleBtn}
             onPress={() => setShowOriginal(!showOriginal)}
-            activeOpacity={0.7}
           >
-            <Text style={styles.toggleLinkText}>
-              {showOriginal ? 'Xem bản dịch' : 'Xem bản gốc'}
+            <Text style={styles.toggleText}>
+              {showOriginal
+                ? "Xem bản dịch tiếng Việt"
+                : "Xem bản gốc tiếng Nhật"}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Question Card */}
+        {/* =====================
+            QUESTION
+        ===================== */}
         <View style={styles.questionCard}>
           <Text style={styles.questionText}>{question.text}</Text>
 
-          {/* Options */}
-          {question.options.map((option, index) => {
-            const isSelected = selectedAnswer === option.id;
-            const isCorrectOption = option.id === correctAnswer;
-            const showCheckmark = showResults && isCorrectOption;
-            const showX = showResults && isSelected && !isCorrectOption;
+          {question.choices.map((c) => {
+            const isSelected = selectedAnswer === c.id;
+            const isCorrect = showResults && c.id === correctAnswerId;
+            const isWrong =
+              showResults && isSelected && c.id !== correctAnswerId;
 
             return (
-              <View key={option.id} style={styles.optionGroup}>
-                <TouchableOpacity
-                  style={styles.radioButtonGroup}
-                  onPress={() => !showResults && handleAnswerSelect(option.id)}
-                  activeOpacity={0.7}
-                  disabled={showResults}
+              <TouchableOpacity
+                key={c.id}
+                onPress={() => !showResults && setSelectedAnswer(c.id)}
+                style={styles.choiceRow}
+                activeOpacity={0.7}
+              >
+                {/* ⭕ Trạng thái */}
+                <View
+                  style={[
+                    styles.choiceCircle,
+                    isSelected && styles.circleSelected,
+                    isCorrect && styles.circleCorrect,
+                    isWrong && styles.circleWrong,
+                  ]}
                 >
-                  <View style={[
-                    styles.radioOuter,
-                    isSelected && styles.radioOuterSelected
-                  ]}>
-                    {isSelected && (
-                      <View style={styles.radioInner} />
-                    )}
-                  </View>
-                  <Text style={styles.optionText}>{option.text}</Text>
-                </TouchableOpacity>
-                {showCheckmark && (
-                  <View style={styles.checkCircle}>
-                    <Ionicons name="checkmark" size={10} color="#7FDEAD" />
-                  </View>
-                )}
-                {showX && (
-                  <View style={styles.xCircle}>
-                    <Ionicons name="close" size={10} color="#F4899E" />
-                  </View>
-                )}
-              </View>
+                  {isCorrect && (
+                    <Ionicons name="checkmark" size={14} color="#fff" />
+                  )}
+                  {isWrong && (
+                    <Ionicons name="close" size={14} color="#fff" />
+                  )}
+                </View>
+
+                <Text style={styles.choiceText}>{c.text}</Text>
+              </TouchableOpacity>
             );
           })}
         </View>
 
-        {/* Show Correct Answer Link (when wrong) */}
-        {showResults && !isCorrect && (
-          <TouchableOpacity 
-            style={styles.showAnswerLink}
-            onPress={handleShowCorrectAnswer}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.showAnswerLinkText}>Xem câu trả lời đúng</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Submit/Complete Button */}
+        {/* =====================
+            ACTION BUTTON
+        ===================== */}
         {!showResults ? (
-          <TouchableOpacity 
-            style={styles.submitButton}
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              !selectedAnswer && { opacity: 0.5 },
+            ]}
             onPress={handleSubmit}
-            activeOpacity={0.7}
             disabled={!selectedAnswer}
           >
-            <Text style={styles.submitButtonText}>Xem kết quả</Text>
+            <Text style={styles.submitText}>Xem kết quả</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.submitButton}
             onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
           >
-            <Text style={styles.submitButtonText}>Hoàn thành</Text>
+            <Text style={styles.submitText}>Hoàn thành</Text>
           </TouchableOpacity>
         )}
-
-        <View style={{ height: 20 }} />
       </ScrollView>
     </View>
   );
 }
 
+/* =====================
+   STYLES
+===================== */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.backgroundSecondary,
   },
+
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 100,
-    alignItems: 'center',
+    padding: 20,
+    paddingBottom: 40,
   },
+
+  /* Reading */
   textBox: {
-    width: 353,
-    minHeight: 320,
-    backgroundColor: '#D4F4E7',
-    borderWidth: 3,
-    borderStyle: 'dashed',
-    borderColor: '#E1E1E1',
-    borderRadius: 5,
-    padding: 20,
+    backgroundColor: "#EAF9F3",
+    padding: 16,
+    borderRadius: 10,
     marginBottom: 20,
-    position: 'relative',
   },
-  textContent: {
-    width: 313,
-    minHeight: 280,
-    fontFamily: 'Nunito',
-    fontWeight: '700',
-    fontSize: 16,
+
+  readingText: {
+    fontSize: 14,
     lineHeight: 22,
-    color: Colors.textPrimary,
-    marginBottom: 4,
+    color: "#222",
   },
-  toggleLink: {
-    alignSelf: 'flex-end',
-    marginTop: 4,
+
+  toggleBtn: {
+    marginTop: 10,
+    alignSelf: "flex-end",
   },
-  toggleLinkText: {
-    fontFamily: 'Nunito',
-    fontWeight: '700',
-    fontSize: 16,
-    lineHeight: 22,
-    color: '#FF9FB0',
+
+  toggleText: {
+    fontSize: 12,
+    color: "#FF7A8A",
+    fontWeight: "500",
   },
+
+  /* Question */
   questionCard: {
-    width: 353,
-    minHeight: 296,
-    backgroundColor: Colors.white,
-    borderRadius: 5,
-    padding: 20,
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 10,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
   },
+
   questionText: {
-    fontFamily: 'Noto Sans JP',
-    fontWeight: '700',
-    fontSize: 16,
-    lineHeight: 19,
-    color: Colors.textPrimary,
-    marginBottom: 20,
-  },
-  optionGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    position: 'relative',
-  },
-  radioButtonGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 6,
-  },
-  radioOuter: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 1.21,
-    borderColor: Colors.textSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioOuterSelected: {
-    borderColor: Colors.textPrimary,
-  },
-  radioInner: {
-    width: 9.08,
-    height: 9.08,
-    borderRadius: 4.54,
-    backgroundColor: Colors.textPrimary,
-  },
-  optionText: {
-    flex: 1,
-    fontFamily: 'Noto Sans JP',
-    fontWeight: '400',
-    fontSize: 14.5854,
-    lineHeight: 18,
-    color: Colors.textPrimary,
-  },
-  checkCircle: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: Colors.white,
-    borderWidth: 1.17,
-    borderColor: '#7FDEAD',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  xCircle: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: Colors.white,
-    borderWidth: 1.17,
-    borderColor: '#F4899E',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  showAnswerLink: {
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  showAnswerLinkText: {
-    fontFamily: 'Nunito',
-    fontWeight: '700',
-    fontSize: 16,
-    lineHeight: 22,
-    color: '#FF9FB0',
-  },
-  submitButton: {
-    width: 200,
-    height: 48,
-    backgroundColor: '#FFB7C5',
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  submitButtonText: {
-    fontFamily: 'Nunito',
-    fontWeight: '700',
     fontSize: 15,
-    lineHeight: 20,
-    color: Colors.white,
+    fontWeight: "600",
+    marginBottom: 12,
+    color: "#333",
+  },
+
+  choiceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 6,
+  },
+
+  choiceCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "#CCC",
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+  },
+
+  circleSelected: {
+    borderColor: "#FFB7C5",
+    backgroundColor: "#FFB7C5",
+  },
+
+  circleCorrect: {
+    borderColor: "#4CAF50",
+    backgroundColor: "#4CAF50",
+  },
+
+  circleWrong: {
+    borderColor: "#F44336",
+    backgroundColor: "#F44336",
+  },
+
+  choiceText: {
+    fontSize: 14,
+    color: "#333",
+  },
+
+  /* Button */
+  submitButton: {
+    backgroundColor: "#FFB7C5",
+    paddingVertical: 14,
+    alignItems: "center",
+    borderRadius: 10,
+  },
+
+  submitText: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

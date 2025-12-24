@@ -1,217 +1,224 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../../constants/Colors';
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "../../constants/Colors";
+import { getVocabularyLessons } from "../../services/vocabService";
 
 export default function VocabularyLevelScreen({ navigation, route }) {
-  const { category = 'Từ vựng', level = 'N5' } = route?.params || {};
-  const [activeFilter, setActiveFilter] = useState('all');
+  const { category = "Từ vựng", level = "N5" } = route?.params || {};
 
-  const handleLessonPress = (unit, lesson) => {
-    navigation.navigate('VocabularyFlashcard', { 
-      category, 
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [lessons, setLessons] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // =========================
+  // FETCH DATA
+  // =========================
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLessons = async () => {
+      try {
+        setLoading(true);
+        const data = await getVocabularyLessons(level);
+
+        if (!isMounted) return;
+
+        // Map backend → UI props
+        const mapped = data.map((lesson) => {
+          let borderColor = "#E1E1E1";
+          let buttonText = "Bắt đầu";
+          let buttonColor = Colors.primary;
+
+          if (lesson.status === "completed") {
+            borderColor = Colors.secondary;
+            buttonText = "Học lại";
+            buttonColor = Colors.secondaryHover;
+          } else if (lesson.status === "in-progress") {
+            borderColor = "#95D4EB";
+            buttonText = "Học tiếp";
+            buttonColor = "#95D4EB";
+          }
+
+          return {
+            ...lesson,
+            borderColor,
+            buttonText,
+            buttonColor,
+          };
+        });
+
+        setLessons(mapped);
+      } catch (error) {
+        console.error("❌ Fetch vocabulary lessons error:", error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchLessons();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [level]);
+
+  // =========================
+  // DERIVED DATA
+  // =========================
+  const completedCount = useMemo(
+    () => lessons.filter((l) => l.status === "completed").length,
+    [lessons]
+  );
+
+  const inProgressCount = useMemo(
+    () => lessons.filter((l) => l.status === "in-progress").length,
+    [lessons]
+  );
+
+  const notStartedCount = useMemo(
+    () => lessons.filter((l) => l.status === "not-started").length,
+    [lessons]
+  );
+
+  const totalProgress = lessons.length
+    ? (completedCount / lessons.length) * 100
+    : 0;
+
+  const filteredLessons = useMemo(() => {
+    if (activeFilter === "all") return lessons;
+    return lessons.filter((lesson) => lesson.status === activeFilter);
+  }, [lessons, activeFilter]);
+
+  // =========================
+  // HANDLERS
+  // =========================
+  const handleLessonPress = (lessonId, title) => {
+    navigation.navigate("VocabularyFlashcard", {
+      category,
       level,
-      unit,
-      lesson
+      lessonId,
+      title,
     });
   };
 
-  // Mock data - danh sách bài học từ vựng
-  const lessons = [
-    {
-      id: 1,
-      unit: 'Unit 01',
-      lesson: 'Bài 1',
-      title: 'Bài 1: Giới thiệu bản thân',
-      wordCount: 20,
-      status: 'completed',
-      progress: 100,
-      borderColor: Colors.secondary,
-      buttonText: 'Học lại',
-      buttonColor: Colors.secondaryHover,
-    },
-    {
-      id: 2,
-      unit: 'Unit 01',
-      lesson: 'Bài 2',
-      title: 'Bài 2: Gia đình',
-      wordCount: 25,
-      status: 'completed',
-      progress: 100,
-      borderColor: Colors.secondary,
-      buttonText: 'Học lại',
-      buttonColor: Colors.secondaryHover,
-    },
-    {
-      id: 3,
-      unit: 'Unit 02',
-      lesson: 'Bài 1',
-      title: 'Bài 1: Thời gian',
-      wordCount: 30,
-      status: 'in-progress',
-      progress: 60,
-      borderColor: '#95D4EB',
-      buttonText: 'Học tiếp',
-      buttonColor: '#95D4EB',
-    },
-    {
-      id: 4,
-      unit: 'Unit 02',
-      lesson: 'Bài 2',
-      title: 'Bài 2: Địa điểm',
-      wordCount: 28,
-      status: 'not-started',
-      progress: 0,
-      borderColor: '#E1E1E1',
-      buttonText: 'Bắt đầu',
-      buttonColor: Colors.primary,
-    },
-  ];
-
-  const completedCount = lessons.filter(l => l.status === 'completed').length;
-  const inProgressCount = lessons.filter(l => l.status === 'in-progress').length;
-  const notStartedCount = lessons.filter(l => l.status === 'not-started').length;
-
-  const totalProgress = (completedCount / lessons.length) * 100;
-
-  const filteredLessons = lessons.filter(lesson => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'completed') return lesson.status === 'completed';
-    if (activeFilter === 'in-progress') return lesson.status === 'in-progress';
-    if (activeFilter === 'not-started') return lesson.status === 'not-started';
-    return true;
-  });
+  // =========================
+  // RENDER
+  // =========================
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {/* Progress Card */}
-          <View style={styles.progressCard}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressTitle}>Tiến độ tổng thể</Text>
-              <Text style={styles.progressPercent}>{Math.round(totalProgress)}%</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Progress Card */}
+        <View style={styles.progressCard}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressTitle}>Tiến độ tổng thể</Text>
+            <Text style={styles.progressPercent}>{Math.round(totalProgress)}%</Text>
+          </View>
+
+          <View style={styles.progressBarBg}>
+            <View style={[styles.progressBarFill, { width: `${totalProgress}%` }]} />
+          </View>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Ionicons name="checkmark-done-circle-outline" size={20} color={Colors.success} />
+              <Text style={styles.statText}>{completedCount} hoàn thành</Text>
             </View>
-
-            {/* Progress Bar */}
-            <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: `${totalProgress}%` }]} />
+            <View style={styles.statItem}>
+              <Ionicons name="time-outline" size={20} color="#95D4EB" />
+              <Text style={styles.statText}>{inProgressCount} đang học</Text>
             </View>
-
-            {/* Stats */}
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Ionicons name="checkmark-done-circle-outline" size={20} color={Colors.success} />
-                <Text style={styles.statText}>{completedCount} hoàn thành</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons name="time-outline" size={20} color="#95D4EB" />
-                <Text style={styles.statText}>{inProgressCount} đang học</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons name="book-outline" size={20} color={Colors.textPlaceholder} />
-                <Text style={styles.statText}>{notStartedCount} chưa học</Text>
-              </View>
-            </View>
-
-            {/* Filter Tabs */}
-            <View style={styles.filterTabs}>
-              <TouchableOpacity 
-                style={[styles.filterTab, activeFilter === 'all' && styles.filterTabActive]}
-                onPress={() => setActiveFilter('all')}
-                activeOpacity={0.7}
-              >
-                {activeFilter === 'all' && <View style={styles.filterHighlight} />}
-                <Text style={styles.filterText}>Tất cả</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.filterTab, activeFilter === 'completed' && styles.filterTabActive]}
-                onPress={() => setActiveFilter('completed')}
-                activeOpacity={0.7}
-              >
-                {activeFilter === 'completed' && <View style={styles.filterHighlight} />}
-                <Text style={styles.filterText}>Hoàn thành</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.filterTab, activeFilter === 'in-progress' && styles.filterTabActive]}
-                onPress={() => setActiveFilter('in-progress')}
-                activeOpacity={0.7}
-              >
-                {activeFilter === 'in-progress' && <View style={styles.filterHighlight} />}
-                <Text style={styles.filterText}>Đang học</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.filterTab, activeFilter === 'not-started' && styles.filterTabActive]}
-                onPress={() => setActiveFilter('not-started')}
-                activeOpacity={0.7}
-              >
-                {activeFilter === 'not-started' && <View style={styles.filterHighlight} />}
-                <Text style={styles.filterText}>Chưa học</Text>
-              </TouchableOpacity>
+            <View style={styles.statItem}>
+              <Ionicons name="book-outline" size={20} color={Colors.textPlaceholder} />
+              <Text style={styles.statText}>{notStartedCount} chưa học</Text>
             </View>
           </View>
 
-          {/* Lessons List */}
-          {filteredLessons.map((lesson) => (
-            <TouchableOpacity 
-              key={lesson.id}
-              style={[styles.lessonCard, { borderColor: lesson.borderColor }]}
-              activeOpacity={0.7}
-              onPress={() => handleLessonPress(lesson.unit, lesson.lesson)}
-            >
-              <View style={styles.lessonHeader}>
-                <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                <TouchableOpacity 
-                  style={[styles.actionButton, { backgroundColor: lesson.buttonColor }]}
-                  activeOpacity={0.7}
-                  onPress={() => handleLessonPress(lesson.unit, lesson.lesson)}
-                >
-                  <Ionicons name="play" size={16} color={Colors.white} />
-                  <Text style={styles.actionButtonText}>{lesson.buttonText}</Text>
-                </TouchableOpacity>
+          {/* Filter Tabs */}
+          <View style={styles.filterTabs}>
+            {["all", "completed", "in-progress", "not-started"].map((key) => (
+              <TouchableOpacity
+                key={key}
+                style={[styles.filterTab, activeFilter === key && styles.filterTabActive]}
+                onPress={() => setActiveFilter(key)}
+                activeOpacity={0.7}
+              >
+                {activeFilter === key && <View style={styles.filterHighlight} />}
+                <Text style={styles.filterText}>
+                  {key === "all"
+                    ? "Tất cả"
+                    : key === "completed"
+                    ? "Hoàn thành"
+                    : key === "in-progress"
+                    ? "Đang học"
+                    : "Chưa học"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Lessons List */}
+        {filteredLessons.map((lesson) => (
+          <TouchableOpacity
+            key={lesson.id}
+            style={[styles.lessonCard, { borderColor: lesson.borderColor }]}
+            activeOpacity={0.7}
+            onPress={() => handleLessonPress(lesson.id, lesson.title)}
+          >
+            <View style={styles.lessonHeader}>
+              <Text style={styles.lessonTitle}>{lesson.title}</Text>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: lesson.buttonColor }]}
+                activeOpacity={0.7}
+                onPress={() => handleLessonPress(lesson.id, lesson.title)}
+              >
+                <Ionicons name="play" size={16} color={Colors.white} />
+                <Text style={styles.actionButtonText}>{lesson.buttonText}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.lessonInfo}>
+              <View style={styles.infoItem}>
+                <Ionicons name="book-outline" size={20} color="#C5B9E8" />
+                <Text style={styles.infoText}>Từ vựng ({lesson.wordCount})</Text>
               </View>
+            </View>
 
-              <View style={styles.lessonInfo}>
-                <View style={styles.infoItem}>
-                  <Ionicons name="book-outline" size={20} color="#C5B9E8" />
-                  <Text style={styles.infoText}>Từ vựng ({lesson.wordCount})</Text>
+            {lesson.status === "completed" ? (
+              <View style={styles.completedBadge}>
+                <Text style={styles.completedText}>✓ Đã hoàn thành bài học</Text>
+              </View>
+            ) : (
+              <View style={styles.progressSection}>
+                <View style={styles.progressRow}>
+                  <Text style={styles.progressLabel}>Tiến độ</Text>
+                  <Text style={styles.progressValue}>{lesson.progress}%</Text>
+                </View>
+                <View style={styles.lessonProgressBarBgGray}>
+                  <View
+                    style={[
+                      lesson.status === "in-progress"
+                        ? styles.lessonProgressBarFill
+                        : styles.lessonProgressBarFillGray,
+                      { width: `${lesson.progress}%` },
+                    ]}
+                  />
                 </View>
               </View>
+            )}
+          </TouchableOpacity>
+        ))}
 
-              {lesson.status === 'completed' ? (
-                <View style={styles.completedBadge}>
-                  <Text style={styles.completedText}>✓ Đã hoàn thành bài học</Text>
-                </View>
-              ) : lesson.status === 'in-progress' ? (
-                <View style={styles.progressSection}>
-                  <View style={styles.progressRow}>
-                    <Text style={styles.progressLabel}>Tiến độ</Text>
-                    <Text style={styles.progressValue}>{lesson.progress}%</Text>
-                  </View>
-                  <View style={styles.lessonProgressBarBgGray}>
-                    <View style={[styles.lessonProgressBarFill, { width: `${lesson.progress}%` }]} />
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.progressSection}>
-                  <View style={styles.progressRow}>
-                    <Text style={styles.progressLabel}>Tiến độ</Text>
-                    <Text style={styles.progressValue}>{lesson.progress}%</Text>
-                  </View>
-                  <View style={styles.lessonProgressBarBgGray}>
-                    <View style={[styles.lessonProgressBarFillGray, { width: `${lesson.progress}%` }]} />
-                  </View>
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-
-          <View style={{ height: 20 }} />
+        <View style={{ height: 20 }} />
       </ScrollView>
     </View>
   );

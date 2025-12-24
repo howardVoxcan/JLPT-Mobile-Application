@@ -1,76 +1,83 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { DictionaryHeader } from '../../components/Dictionary/DictionaryHeader';
-import { SearchBar } from '../../components/Dictionary/SearchBar';
-import { DictionaryTabs } from '../../components/Dictionary/DictionaryTabs';
-import { SearchResultDropdown } from '../../components/Dictionary/SearchResultDropdown';
-import { Colors } from '../../constants/Colors';
-import { FontSizes, FontWeights } from '../../constants/Fonts';
-import { Spacing } from '../../constants/Spacing';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { DictionaryHeader } from "../../components/Dictionary/DictionaryHeader";
+import { SearchBar } from "../../components/Dictionary/SearchBar";
+import { DictionaryTabs } from "../../components/Dictionary/DictionaryTabs";
+import { SearchResultDropdown } from "../../components/Dictionary/SearchResultDropdown";
+import { Colors } from "../../constants/Colors";
+import { FontSizes, FontWeights } from "../../constants/Fonts";
+import { Spacing } from "../../constants/Spacing";
+import { DictionaryDetail } from "../../components/Dictionary/DictionaryDetail";
+import {
+  searchDictionary,
+  getDictionaryDetail,
+} from "../../services/dictionaryService";
 
 export const DictionaryScreen = ({ navigation }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('vocabulary');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("vocabulary");
   const [isFocused, setIsFocused] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
+  const [selectedEntry, setSelectedEntry] = useState(null);
 
   const handleProfilePress = () => {
-    navigation.navigate('Profile');
+    navigation.navigate("Profile");
   };
 
-  // Mock search results
-  const mockResults = {
-    'hi': [
-      { kanji: '火', hiragana: 'ひ', meaning: 'lửa, ngọn lửa, đám cháy' },
-      { kanji: '日', hiragana: 'ひ', meaning: 'ngày, các ngày' },
-      { kanji: '灯', hiragana: 'ひ', meaning: 'ánh sáng, đèn' },
-      { kanji: '妃', hiragana: 'ひ', meaning: 'công chúa, phi tần' },
-      { kanji: '比', hiragana: 'ひ', meaning: 'tỷ lệ, tỉ lệ' },
-    ],
-    'youni': [
-      { kanji: 'ように', hiragana: 'N3', meaning: 'Hãy làm.../Đừng làm' },
-      { kanji: 'ように', hiragana: 'N3', meaning: 'Như/Theo như...' },
-      { kanji: 'ように', hiragana: 'N4', meaning: 'Để/Để tránh' },
-      { kanji: 'ようにする・ようにしている', hiragana: 'N4', meaning: 'Chắc chắn làm..., cố gắng làm...' },
-      { kanji: 'ようになている', hiragana: 'N4', meaning: 'Được, để' },
-    ],
-    'nhật': [
-      { kanji: '日本', hiragana: 'にほん', meaning: 'nhật bản' },
-      { kanji: '日本', hiragana: 'にっぽん', meaning: 'nhật bản' },
-      { kanji: '日本化', hiragana: 'にほんか', meaning: 'nhật bản hóa' },
-      { kanji: '日本語', hiragana: 'にほんご', meaning: 'tiếng nhật' },
-      { kanji: '日本学', hiragana: 'にほんがく', meaning: 'nhật bản học' },
-    ],
+  const TAB_TYPE_MAP = {
+    vocabulary: "vocab",
+    grammar: "grammar",
+    kanji: "kanji",
+    translate: "sentence",
   };
 
+  const debounceTimer = useRef(null);
   const handleSearch = (text) => {
     setSearchQuery(text);
-    
-    if (text.trim().length > 0) {
-      // Simulate search - match partial text
-      const lowerText = text.toLowerCase();
-      
-      // Check exact match first
-      if (mockResults[lowerText]) {
-        setSearchResults(mockResults[lowerText]);
-      } else {
-        // Check if text starts with any key
-        const matchedKey = Object.keys(mockResults).find(key => 
-          key.startsWith(lowerText) || lowerText.startsWith(key)
-        );
-        if (matchedKey) {
-          setSearchResults(mockResults[matchedKey]);
-        } else if (text.length >= 1) {
-          // Show default results for any input >= 1 char for testing
-          setSearchResults(mockResults['hi']);
-        } else {
-          setSearchResults([]);
-        }
-      }
-    } else {
-      setSearchResults([]);
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
+
+    debounceTimer.current = setTimeout(async () => {
+      if (!text || text.trim().length === 0) {
+        setSearchResults([]);
+        return;
+      }
+
+      try {
+        const backendType = TAB_TYPE_MAP[activeTab];
+        const data = await searchDictionary(text, backendType);
+
+        const mappedResults = data.map((item) => ({
+          id: item.id,
+          keyword: item.keyword,
+          reading: item.reading,
+          meaning: item.meaning,
+          extra: item.extra,
+          jlpt_level: item.jlpt_level,
+        }));
+
+        setSearchResults(mappedResults);
+      } catch (err) {
+        console.error(err);
+        setSearchResults([]);
+      }
+    }, 50);
   };
+
+  useEffect(() => {
+    if (searchQuery && !selectedEntry) {
+      handleSearch(searchQuery);
+    }
+  }, [activeTab]);
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -84,24 +91,36 @@ export const DictionaryScreen = ({ navigation }) => {
   };
 
   const handleSelectResult = (result) => {
-    console.log('Selected:', result);
-    setIsFocused(false);
-    setSearchQuery(result.kanji);
-    // Không clear searchResults để giữ lại nếu user focus lại
-  };
+  // Đóng dropdown
+  setIsFocused(false);
+  setSearchResults([]);
+
+  // Hiển thị text đã chọn lên SearchBar
+  setSearchQuery(result.keyword);
+
+  // 🔥 HIỂN THỊ DETAIL NGAY TỪ KẾT QUẢ SEARCH
+  setSelectedEntry({
+    keyword: result.keyword,
+    reading: result.reading,
+    meaning: result.meaning,
+    extra: result.extra ?? null,
+    jlpt_level: result.jlpt_level ?? null,
+  });
+};
+
 
   const getSuggestionText = () => {
     switch (activeTab) {
-      case 'vocabulary':
-        return 'Gợi ý:\n• Dịch và phân tích đoạn văn: 朝食は1日の中で...\n• Tra Hiragana bằng cách viết thường: omoshiroi\n• Tra Katakana bằng cách viết hoa: Betonamu\n• Tra biến thể: たべません\n• Nhấn vào từ để nghe phát âm.\n• Bôi đen tiếng Nhật để hiện tìm kiếm nhanh.';
-      case 'grammar':
-        return 'Gợi ý:\n• Bạn chỉ cần gõ ngữ pháp để thực hiện tìm kiếm nhanh.\n• Ngữ pháp sẽ được tìm kiếm tức thì, phần nội dung tìm thấy sẽ được bôi vàng.\n• Nhấn vào ngữ pháp để xem thông tin chi tiết.';
-      case 'kanji':
-        return 'Gợi ý:\n• Nhấn vào âm On, Kun để nghe phát âm.\n• Nhấn vào dấu ⊞ trong mục phân tích để xem thành phần của Kanji.\n• Nhấn vào (bộ thủ) trong mục phân tích để xem thông tin về bộ thủ.';
-      case 'translate':
-        return 'Gợi ý:\n• Nhập câu tiếng Nhật hoặc tiếng Việt để dịch.\n• Nhấn vào từng từ trong câu để xem chi tiết.\n• Hệ thống sẽ tự động phát hiện ngôn ngữ.';
+      case "vocabulary":
+        return "Gợi ý:\n• Dịch và phân tích đoạn văn: 朝食は1日の中で...\n• Tra Hiragana bằng cách viết thường: omoshiroi\n• Tra Katakana bằng cách viết hoa: Betonamu\n• Tra biến thể: たべません\n• Nhấn vào từ để nghe phát âm.\n• Bôi đen tiếng Nhật để hiện tìm kiếm nhanh.";
+      case "grammar":
+        return "Gợi ý:\n• Bạn chỉ cần gõ ngữ pháp để thực hiện tìm kiếm nhanh.\n• Ngữ pháp sẽ được tìm kiếm tức thì, phần nội dung tìm thấy sẽ được bôi vàng.\n• Nhấn vào ngữ pháp để xem thông tin chi tiết.";
+      case "kanji":
+        return "Gợi ý:\n• Nhấn vào âm On, Kun để nghe phát âm.\n• Nhấn vào dấu ⊞ trong mục phân tích để xem thành phần của Kanji.\n• Nhấn vào (bộ thủ) trong mục phân tích để xem thông tin về bộ thủ.";
+      case "translate":
+        return "Gợi ý:\n• Nhập câu tiếng Nhật hoặc tiếng Việt để dịch.\n• Nhấn vào từng từ trong câu để xem chi tiết.\n• Hệ thống sẽ tự động phát hiện ngôn ngữ.";
       default:
-        return '';
+        return "";
     }
   };
 
@@ -110,8 +129,8 @@ export const DictionaryScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
         {/* Header - Fixed */}
@@ -120,29 +139,34 @@ export const DictionaryScreen = ({ navigation }) => {
         {/* Search Container */}
         <View style={styles.searchContainer}>
           {/* Search Card with SearchBar, Tabs and Dropdown */}
-          <View style={[styles.searchCard, showDropdown && styles.searchCardActive]}>
+          <View
+            style={[styles.searchCard, showDropdown && styles.searchCardActive]}
+          >
             {/* Search Bar */}
             <View style={styles.searchBarWrapper}>
               <SearchBar
                 value={searchQuery}
                 onChangeText={handleSearch}
                 placeholder={
-                  activeTab === 'vocabulary' ? 'Nhật Bản, nihon, 日本' :
-                  activeTab === 'grammar' ? 'が, nhưng' :
-                  activeTab === 'kanji' ? '日, NHẬT' :
-                  '日本語は面白いです。'
+                  activeTab === "vocabulary"
+                    ? "Nhật Bản, nihon, 日本"
+                    : activeTab === "grammar"
+                    ? "が, nhưng"
+                    : activeTab === "kanji"
+                    ? "日, NHẬT"
+                    : "日本語は面白いです。"
                 }
                 onFocus={handleFocus}
-                onBlur={handleBlur}
+                onBlur={undefined}
                 isFocused={showDropdown}
               />
             </View>
-            
+
             {/* Tabs - Luôn hiển thị */}
             <View style={styles.tabsWrapper}>
-              <DictionaryTabs 
-                activeTab={activeTab} 
-                onTabChange={setActiveTab} 
+              <DictionaryTabs
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
               />
             </View>
 
@@ -158,16 +182,16 @@ export const DictionaryScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Scrollable Content */}
-        <ScrollView 
+        <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Suggestions */}
-          <Text style={styles.suggestionText}>
-            {getSuggestionText()}
-          </Text>
+          {selectedEntry ? (
+            <DictionaryDetail entry={selectedEntry} />
+          ) : (
+            <Text style={styles.suggestionText}>{getSuggestionText()}</Text>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -195,12 +219,12 @@ const styles = StyleSheet.create({
   searchCard: {
     backgroundColor: Colors.white,
     borderRadius: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 5,
     elevation: 5,
-    overflow: 'visible', // Cho phép dropdown hiển thị ra ngoài
+    overflow: "visible", // Cho phép dropdown hiển thị ra ngoài
   },
   searchCardActive: {
     // Khi dropdown active, giảm shadow
@@ -209,14 +233,14 @@ const styles = StyleSheet.create({
   tabsWrapper: {
     paddingHorizontal: 10,
     paddingBottom: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   searchBarWrapper: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
   },
   dropdownOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 46, // paddingTop (8) + SearchBar height (38) = 46, kết nối trực tiếp với SearchBar
     left: Spacing.sm, // 8 - align với searchBarWrapper paddingHorizontal
     right: Spacing.sm, // 8

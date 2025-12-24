@@ -57,10 +57,6 @@ export const SignUpScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <BackButton 
-            text="Quay lại trang chủ" 
-            onPress={() => navigation.goBack()} 
-          />
           
           <Text style={styles.title}>Đăng ký</Text>
           

@@ -28,6 +28,10 @@ urlpatterns = [
     path("api/auth/", include("apps.accounts.urls")),
     path("api/grammar/", include("apps.grammar.urls")),
     path("api/chatbot/", include("apps.chatbot.urls")),
+    path("api/dictionary/", include("apps.dictionary.urls")),
+    path("api/reading/", include("apps.reading.urls")),
+    path("api/listening/", include("apps.listening.urls")),
+    path("api/vocab/", include("apps.vocab.urls")),
 ]
 
 if settings.DEBUG:

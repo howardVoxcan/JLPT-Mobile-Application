@@ -6,8 +6,7 @@ export const useChatbot = () => {
         {
         id: "init",
         text:
-            "Chào bạn! Ở học tiếng Nhật tôi một hành trình thú vị đây. " +
-            "Bước đầu tiên là học bảng chữ cái.",
+            "Xin chào! 👋 Mình là trợ lý học tiếng Nhật của ứng dụng, luôn sẵn sàng giúp bạn giải đáp nhanh gọn các thắc mắc về từ vựng, ngữ pháp, kanji, luyện JLPT và văn hóa Nhật Bản. Hỏi mình bất cứ lúc nào nhé! 🇯🇵📚",
         isBot: true,
         timestamp: new Date(),
         },

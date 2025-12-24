@@ -1,130 +1,107 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/Colors';
-import { FontSizes, FontWeights } from '../../constants/Fonts';
-import { useFavorites } from '../../context/FavoritesContext';
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "../../constants/Colors";
+import { useFavorites } from "../../context/FavoritesContext";
+import {
+  getVocabularyLessonDetail,
+  updateVocabularyProgress,
+  toggleVocabularyFavorite,
+} from "../../services/vocabService";
 
 export default function VocabularyFlashcardScreen({ navigation, route }) {
-  const { unit = 'Unit 01', lesson = 'Bài 1', level = 'N5' } = route?.params || {};
+  const { lessonId, title, level, category } = route?.params || {};
+
+  const [lesson, setLesson] = useState(null);
+  const [words, setWords] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const { addVocabularyFavorite, removeVocabularyFavorite, isVocabularyFavorite } = useFavorites();
+  const [loading, setLoading] = useState(true);
 
-  // Mock vocabulary data - Unit 01 - Bài 1
-  const unit1Lesson1 = [
-    {
-      id: '1-1',
-      kanji: '男性',
-      hiragana: 'だんせい',
-      vietnamese: 'NAM TÍNH',
-      meaning: 'nam giới, đàn ông',
-      example: '理想の男性と結婚する。',
-      exampleMeaning: 'Kết hôn với người đàn ông lý tưởng.',
-    },
-    {
-      id: '1-2',
-      kanji: '女性',
-      hiragana: 'じょせい',
-      vietnamese: 'NỮ TÍNH',
-      meaning: 'nữ giới, phụ nữ, giới tính nữ',
-      example: '女性専用の車両に乗る。',
-      exampleMeaning: 'Lên toa dành riêng cho phụ nữ.',
-    },
-    {
-      id: '1-3',
-      kanji: '高齢',
-      hiragana: 'こうれい',
-      vietnamese: 'CAO LINH',
-      meaning: 'tuổi cao',
-      example: '高齢者向けのサービスを提供する。',
-      exampleMeaning: 'Cung cấp dịch vụ dành cho người cao tuổi.',
-    },
-    {
-      id: '1-4',
-      kanji: '成人',
-      hiragana: 'せいじん',
-      vietnamese: 'THÀNH NHÂN',
-      meaning: 'người trưởng thành',
-      example: '成人式に出席する。',
-      exampleMeaning: 'Tham dự lễ trưởng thành.',
-    },
-    {
-      id: '1-5',
-      kanji: '誕生',
-      hiragana: 'たんじょう',
-      vietnamese: 'ĐẢN SINH',
-      meaning: 'sự ra đời, sinh nhật',
-      example: '新しい時代の誕生を祝う。',
-      exampleMeaning: 'Chúc mừng sự ra đời của kỷ nguyên mới.',
-    },
-  ];
+  const { addVocabularyFavorite, removeVocabularyFavorite, isVocabularyFavorite } =
+    useFavorites();
 
-  // Mock vocabulary data - Unit 01 - Bài 2
-  const unit1Lesson2 = [
-    {
-      id: '2-1',
-      kanji: '笑顔',
-      hiragana: 'えがお',
-      vietnamese: 'TIẾU NHAN',
-      meaning: 'nụ cười, khuôn mặt cười',
-      example: '彼女の笑顔に癒される。',
-      exampleMeaning: 'Được chữa lành bởi nụ cười của cô ấy.',
-    },
-    {
-      id: '2-2',
-      kanji: '表情',
-      hiragana: 'ひょうじょう',
-      vietnamese: 'BIỂU TÌNH',
-      meaning: 'biểu cảm, nét mặt',
-      example: '彼の表情から不安が読み取れる。',
-      exampleMeaning: 'Có thể đọc được sự lo lắng từ biểu cảm của anh ấy.',
-    },
-    {
-      id: '2-3',
-      kanji: '視線',
-      hiragana: 'しせん',
-      vietnamese: 'THỊ TUYẾN',
-      meaning: 'tầm nhìn, ánh mắt',
-      example: '彼女の視線を感じる。',
-      exampleMeaning: 'Cảm nhận được ánh mắt của cô ấy.',
-    },
-  ];
+  // =========================
+  // FETCH LESSON DETAIL
+  // =========================
+  useEffect(() => {
+    let isMounted = true;
 
-  // Get vocabulary based on unit and lesson params
-  const getVocabulary = () => {
-    if (lesson === 'Bài 1') {
-      return unit1Lesson1;
-    } else if (lesson === 'Bài 2') {
-      return unit1Lesson2;
+    const fetchLesson = async () => {
+      try {
+        setLoading(true);
+        const data = await getVocabularyLessonDetail(lessonId);
+
+        if (!isMounted) return;
+
+        setLesson(data);
+        setWords(data.words || []);
+      } catch (error) {
+        console.error("❌ Fetch vocabulary lesson detail error:", error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    if (lessonId) {
+      fetchLesson();
     }
-    return unit1Lesson1; // default
-  };
 
-  const vocabulary = getVocabulary();
+    return () => {
+      isMounted = false;
+    };
+  }, [lessonId]);
 
-  const currentWord = vocabulary[currentIndex];
-  const totalWords = vocabulary.length;
-  const progress = ((currentIndex + 1) / totalWords) * 100;
-  
-  // Calculate progress indicator position (limit to prevent overflow)
+  // =========================
+  // DERIVED DATA
+  // =========================
+  const totalWords = words.length;
+  const currentWord = words[currentIndex];
+
+  const progress = totalWords
+    ? ((currentIndex + 1) / totalWords) * 100
+    : 0;
+
+  const isFirstWord = currentIndex === 0;
+  const isLastWord = currentIndex === totalWords - 1;
+
+  const isFavorite = useMemo(() => {
+    if (!currentWord) return false;
+    return isVocabularyFavorite(currentWord.id);
+  }, [currentWord, isVocabularyFavorite]);
+
+  // progress indicator position
   const progressBarWidth = 310;
   const indicatorWidth = 72;
   const maxLeft = progressBarWidth - indicatorWidth;
-  const indicatorLeft = Math.min((progress / 100) * progressBarWidth - indicatorWidth / 2, maxLeft);
+  const indicatorLeft = Math.min(
+    (progress / 100) * progressBarWidth - indicatorWidth / 2,
+    maxLeft
+  );
 
-  const isFavorite = isVocabularyFavorite(currentWord?.id);
-
-  const handleNext = () => {
+  // =========================
+  // HANDLERS
+  // =========================
+  const handleNext = async () => {
     if (currentIndex < totalWords - 1) {
-      setCurrentIndex(currentIndex + 1);
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
       setIsFlipped(false);
+
+      // update progress backend
+      await updateVocabularyProgress(lessonId, nextIndex + 1);
     } else {
-      // Navigate back to VocabularyLevelScreen when completed
-      navigation.navigate('VocabularyLevel', {
-        category: route?.params?.category,
-        level: route?.params?.level,
-      });
+      // hoàn thành bài
+      await updateVocabularyProgress(lessonId, totalWords);
+
+      navigation.goBack();
     }
   };
 
@@ -139,21 +116,53 @@ export default function VocabularyFlashcardScreen({ navigation, route }) {
     handleNext();
   };
 
-  const isFirstWord = currentIndex === 0;
-  const isLastWord = currentIndex === totalWords - 1;
-
   const handlePlayAudio = () => {
-    // TODO: Implement audio playback
-    console.log('Play audio for:', currentWord.hiragana);
+    if (!currentWord) return;
+    console.log("🔊 Play audio for:", currentWord.hiragana);
+    // TODO: play audio when backend audio ready
   };
 
-  const handleToggleFavorite = () => {
-    if (isFavorite) {
-      removeVocabularyFavorite(currentWord.id);
-    } else {
-      addVocabularyFavorite(currentWord);
+  const handleToggleFavorite = async () => {
+    if (!currentWord) return;
+
+    try {
+      const res = await toggleVocabularyFavorite(currentWord.id);
+
+      if (res.favorite) {
+        addVocabularyFavorite(currentWord);
+      } else {
+        removeVocabularyFavorite(currentWord.id);
+      }
+    } catch (e) {
+      console.error("❌ Toggle favorite error:", e);
     }
   };
+
+  // =========================
+  // RENDER
+  // =========================
+  if (loading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (!currentWord) {
+    return (
+      <View style={styles.container}>
+        <Text>Không có dữ liệu từ vựng</Text>
+      </View>
+    );
+  }
+
+  const example = currentWord.examples?.[0];
 
   return (
     <View style={styles.container}>
@@ -163,8 +172,8 @@ export default function VocabularyFlashcardScreen({ navigation, route }) {
           <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
           <View style={[styles.progressIndicator, { left: indicatorLeft }]}>
             <View style={styles.indicatorCircle}>
-              <Image 
-                source={require('../../../assets/logo.png')} 
+              <Image
+                source={require("../../../assets/logo.png")}
                 style={styles.indicatorImage}
                 resizeMode="contain"
               />
@@ -175,13 +184,13 @@ export default function VocabularyFlashcardScreen({ navigation, route }) {
       </View>
 
       {/* Flashcard */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.flashcard}
         onPress={() => setIsFlipped(!isFlipped)}
         activeOpacity={0.9}
       >
-        {/* Action Buttons - positioned absolutely */}
-        <TouchableOpacity 
+        {/* Audio */}
+        <TouchableOpacity
           style={styles.audioButton}
           onPress={(e) => {
             e.stopPropagation();
@@ -189,9 +198,15 @@ export default function VocabularyFlashcardScreen({ navigation, route }) {
           }}
           activeOpacity={0.7}
         >
-          <Ionicons name="volume-high-outline" size={28} color={Colors.primary} />
+          <Ionicons
+            name="volume-high-outline"
+            size={28}
+            color={Colors.primary}
+          />
         </TouchableOpacity>
-        <TouchableOpacity 
+
+        {/* Favorite */}
+        <TouchableOpacity
           style={styles.favoriteButton}
           onPress={(e) => {
             e.stopPropagation();
@@ -199,71 +214,96 @@ export default function VocabularyFlashcardScreen({ navigation, route }) {
           }}
           activeOpacity={0.7}
         >
-          <Ionicons 
-            name={isFavorite ? "heart" : "heart-outline"} 
-            size={28} 
-            color={Colors.primary} 
+          <Ionicons
+            name={isFavorite ? "heart" : "heart-outline"}
+            size={28}
+            color={Colors.primary}
           />
         </TouchableOpacity>
 
-        {/* Word Content */}
+        {/* Content */}
         <View style={styles.wordContent}>
           {!isFlipped ? (
             <>
-              {/* Mặt trước: Hiragana và Kanji */}
               <Text style={styles.reading}>{currentWord.hiragana}</Text>
               <Text style={styles.kanji}>{currentWord.kanji}</Text>
             </>
           ) : (
             <>
-              {/* Mặt sau: Meaning và Example */}
-              <Text style={styles.meaningLarge}>{currentWord.vietnamese}</Text>
+              <Text style={styles.meaningLarge}>
+                {currentWord.vietnamese}
+              </Text>
               <Text style={styles.meaning}>{currentWord.meaning}</Text>
-              <View style={styles.exampleContainer}>
-                <Text style={styles.exampleJP}>{currentWord.example}</Text>
-                <Text style={styles.exampleVN}>{currentWord.exampleMeaning}</Text>
-              </View>
+
+              {example && (
+                <View style={styles.exampleContainer}>
+                  <Text style={styles.exampleJP}>
+                    {example.sentence_jp}
+                  </Text>
+                  <Text style={styles.exampleVN}>
+                    {example.sentence_vi}
+                  </Text>
+                </View>
+              )}
             </>
           )}
         </View>
 
-        {/* Pointer Icon */}
         <View style={styles.pointerIcon}>
-          <Ionicons name="hand-left-outline" size={30} color={Colors.primary} />
+          <Ionicons
+            name="hand-left-outline"
+            size={30}
+            color={Colors.primary}
+          />
           <Text style={styles.pointerText}>
-            {isFlipped ? 'Ấn để xem từ vựng' : 'Ấn để xem chi tiết'}
+            {isFlipped ? "Ấn để xem từ vựng" : "Ấn để xem chi tiết"}
           </Text>
         </View>
       </TouchableOpacity>
 
-      {/* Navigation Buttons */}
+      {/* Navigation */}
       <View style={styles.navigationButtons}>
-        {/* Previous Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.previousButton, isFirstWord && styles.buttonDisabled]}
           onPress={handlePrevious}
           disabled={isFirstWord}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={20} color={isFirstWord ? Colors.textPlaceholder : Colors.white} />
-          <Text style={[styles.previousButtonText, isFirstWord && styles.buttonTextDisabled]}>Quay lại</Text>
+          <Ionicons
+            name="chevron-back"
+            size={20}
+            color={isFirstWord ? Colors.textPlaceholder : Colors.white}
+          />
+          <Text
+            style={[
+              styles.previousButtonText,
+              isFirstWord && styles.buttonTextDisabled,
+            ]}
+          >
+            Quay lại
+          </Text>
         </TouchableOpacity>
 
-        {/* Continue/Complete Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.continueButton}
           onPress={handleNext}
           activeOpacity={0.7}
         >
           <Text style={styles.continueButtonText}>
-            {isLastWord ? 'Hoàn thành' : 'Tiếp tục'}
+            {isLastWord ? "Hoàn thành" : "Tiếp tục"}
           </Text>
-          {!isLastWord && <Ionicons name="chevron-forward" size={20} color={Colors.white} style={{ marginLeft: 4 }} />}
+          {!isLastWord && (
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={Colors.white}
+              style={{ marginLeft: 4 }}
+            />
+          )}
         </TouchableOpacity>
       </View>
 
-      {/* Skip Link */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.skipLink}
         onPress={handleSkip}
         activeOpacity={0.7}

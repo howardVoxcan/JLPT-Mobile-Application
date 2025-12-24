@@ -1,81 +1,143 @@
-import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Platform, StatusBar } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../../constants/Colors';
-import { FontSizes, FontWeights } from '../../constants/Fonts';
-import { Spacing } from '../../constants/Spacing';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  StatusBar,
+  ActivityIndicator,
+} from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Colors } from "../../constants/Colors";
+import { Spacing } from "../../constants/Spacing";
 
-const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 24;
+import { getMe, logout } from "../../services/authService";
+
+const STATUSBAR_HEIGHT =
+  Platform.OS === "ios" ? 50 : StatusBar.currentHeight || 24;
 
 export default function ProfileScreen({ navigation }) {
-  const handleBack = () => {
-    navigation.goBack();
-  };
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  /* ========================
+   * LOAD USER PROFILE
+   * ======================== */
+  useEffect(() => {
+    const loadMe = async () => {
+      try {
+        const data = await getMe();
+        setUser(data);
+      } catch (error) {
+        console.error("Get profile failed:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMe();
+  }, []);
+
+  /* ========================
+   * HANDLERS
+   * ======================== */
   const handleNavigateToSection = (section) => {
-    console.log('Navigate to:', section);
-    if (section === 'favorites') {
-      navigation.navigate('Favorites');
-    } else if (section === 'settings') {
-      // TODO: Navigate to settings
-      console.log('Settings not implemented yet');
-    } else if (section === 'switch-user') {
-      // TODO: Navigate to switch user
-      console.log('Switch user not implemented yet');
+    if (section === "favorites") {
+      navigation.navigate("Favorites");
+    } else if (section === "settings") {
+      navigation.navigate("Settings");
+    } else if (section === "switch-user") {
+      // future: switch account
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Login" }],
+    });
+  };
+
+  /* ========================
+   * NOTEBOOK MOCK (giữ nguyên)
+   * ======================== */
   const notebooks = [
     [
-      { title: 'Từ vựng', level: 'N3' },
-      { title: 'Kanji', level: 'N4' },
-      { title: 'Ngữ pháp', level: 'N3' },
+      { title: "Từ vựng", level: "N3" },
+      { title: "Kanji", level: "N4" },
+      { title: "Ngữ pháp", level: "N3" },
     ],
     [
-      { title: 'Đọc hiểu', level: 'N5' },
-      { title: 'Nghe Hiểu', level: 'N5' },
-      { title: 'Thi JLPT', level: 'N5' },
+      { title: "Đọc hiểu", level: "N5" },
+      { title: "Nghe hiểu", level: "N5" },
+      { title: "Thi JLPT", level: "N5" },
     ],
   ];
 
-  const handleNotebookPress = (notebookTitle) => {
-    navigation.navigate('NotebookDetail', { notebookType: notebookTitle });
-  };
+  /* ========================
+   * LOADING UI
+   * ======================== */
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-
-        {/* User Info Section */}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* ================= USER INFO ================= */}
         <View style={styles.section}>
           <View style={styles.userInfo}>
-            <View style={styles.userIconContainer}>
-              <Ionicons name="person-circle-outline" size={64} color="#000000" />
-            </View>
+            {/* Avatar */}
+            {user?.avatar ? (
+              <Image
+                source={{ uri: user.avatar }}
+                style={styles.avatar}
+              />
+            ) : (
+              <Ionicons
+                name="person-circle-outline"
+                size={64}
+                color="#000"
+              />
+            )}
+
+            {/* User detail */}
             <View style={styles.userDetails}>
-              <Text style={styles.userName}>Nguyễn Văn A</Text>
-              <Text style={styles.userSubtext}>Thông tin tài khoản</Text>
+              <Text style={styles.userName}>
+                {user?.full_name || "Chưa đặt tên"}
+              </Text>
+              <Text style={styles.userSubtext}>
+                {user?.email}
+              </Text>
             </View>
+
+            {/* Switch user
             <TouchableOpacity
               style={styles.switchUserButton}
-              onPress={() => handleNavigateToSection('switch-user')}
-              activeOpacity={0.7}
+              onPress={() => handleNavigateToSection("switch-user")}
             >
               <MaterialCommunityIcons
                 name="account-switch"
-                size={16}
+                size={18}
                 color={Colors.secondaryHover}
               />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
 
-        {/* Favorites and Settings Section */}
+        {/* ================= MENU ================= */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => handleNavigateToSection('favorites')}
-            activeOpacity={0.7}
+            onPress={() => handleNavigateToSection("favorites")}
           >
             <MaterialCommunityIcons
               name="heart-outline"
@@ -83,18 +145,12 @@ export default function ProfileScreen({ navigation }) {
               color={Colors.secondaryHover}
             />
             <Text style={styles.menuText}>Lưu trữ yêu thích</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={30}
-              color={Colors.secondaryHover}
-              style={styles.chevronIcon}
-            />
+            <Ionicons name="chevron-forward" size={28} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => handleNavigateToSection('settings')}
-            activeOpacity={0.7}
+            onPress={() => handleNavigateToSection("settings")}
           >
             <Ionicons
               name="settings-outline"
@@ -102,59 +158,47 @@ export default function ProfileScreen({ navigation }) {
               color={Colors.secondaryHover}
             />
             <Text style={styles.menuText}>Cài đặt chung</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={30}
-              color={Colors.secondaryHover}
-              style={styles.chevronIcon}
-            />
+            <Ionicons name="chevron-forward" size={28} />
+          </TouchableOpacity>
+
+          {/* LOGOUT */}
+          <TouchableOpacity
+            style={[styles.menuItem, { borderTopWidth: 1 }]}
+            onPress={handleLogout}
+          >
+            <Ionicons name="log-out-outline" size={32} color="red" />
+            <Text style={[styles.menuText, { color: "red" }]}>
+              Đăng xuất
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Notebook Section */}
+        {/* ================= NOTEBOOK ================= */}
         <View style={styles.notebookSection}>
-          <TouchableOpacity
-            style={styles.notebookHeader}
-            onPress={() => navigation.navigate('Notebook')}
-            activeOpacity={0.7}
-          >
+          <View style={styles.notebookHeader}>
             <MaterialCommunityIcons
               name="notebook-outline"
               size={32}
               color={Colors.secondaryHover}
             />
             <Text style={styles.menuText}>Sổ tay học tập</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={30}
-              color={Colors.secondaryHover}
-              style={styles.chevronIcon}
-            />
-          </TouchableOpacity>
+          </View>
 
           {notebooks.map((row, rowIndex) => (
             <View key={rowIndex} style={styles.notebookRow}>
-              {row.map((notebook, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.notebookCard}
-                  onPress={() => handleNotebookPress(notebook.title)}
-                  activeOpacity={0.7}
-                >
+              {row.map((item, index) => (
+                <View key={index} style={styles.notebookCard}>
                   <View style={styles.notebookTop}>
-                    <Text style={styles.notebookTitle}>{notebook.title}</Text>
+                    <Text style={styles.notebookText}>{item.title}</Text>
                   </View>
                   <View style={styles.notebookBottom}>
-                    <Text style={styles.notebookLevel}>{notebook.level}</Text>
+                    <Text style={styles.notebookText}>{item.level}</Text>
                   </View>
-                </TouchableOpacity>
+                </View>
               ))}
             </View>
           ))}
         </View>
-
-        {/* Bottom spacing for navigation bar */}
-        <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
   );
@@ -164,6 +208,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.backgroundSecondary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollView: {
     flex: 1,
@@ -181,7 +230,7 @@ const styles = StyleSheet.create({
     height: 68,
     paddingHorizontal: 26,
   },
-  userIconContainer: {
+  avatar: {
     width: 64,
     height: 64,
   },
