@@ -1,46 +1,58 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { FontSizes, FontWeights } from '../../constants/Fonts';
+import { getNotebookCategories } from '../../services/notebookService';
+
+const ICON_CONFIG = {
+  'Từ vựng': { name: 'book-outline', bgColor: '#FFE4DC', iconColor: '#DF6992' },
+  'Kanji': { name: 'language-outline', bgColor: '#D4F4E7', iconColor: '#63B37B' },
+  'Ngữ pháp': { name: 'text-outline', bgColor: 'rgba(197, 185, 232, 0.5)', iconColor: '#BB64D3' },
+  'Đọc hiểu': { name: 'book-open-outline', bgColor: 'rgba(255, 244, 163, 0.5)', iconColor: '#D4CF73' },
+  'Nghe hiểu': { name: 'headset-outline', bgColor: 'rgba(149, 212, 235, 0.4)', iconColor: '#446498' },
+  'Thi JLPT': { name: 'document-text-outline', bgColor: 'rgba(255, 203, 164, 0.5)', iconColor: '#CB8561' },
+};
 
 export const NotebookScreen = ({ navigation }) => {
-  const categories = [
-    {
-      title: 'Từ vựng',
-      icon: { name: 'book-outline', bgColor: '#FFE4DC', iconColor: '#DF6992' },
-      subtitle: '1 cấp độ hoàn thành • 2 đang học',
-    },
-    {
-      title: 'Kanji',
-      icon: { name: 'language-outline', bgColor: '#D4F4E7', iconColor: '#63B37B' },
-      subtitle: '1 cấp độ hoàn thành • 2 đang học',
-    },
-    {
-      title: 'Ngữ pháp',
-      icon: { name: 'text-outline', bgColor: 'rgba(197, 185, 232, 0.5)', iconColor: '#BB64D3' },
-      subtitle: '1 cấp độ hoàn thành • 2 đang học',
-    },
-    {
-      title: 'Đọc hiểu',
-      icon: { name: 'book-open-outline', bgColor: 'rgba(255, 244, 163, 0.5)', iconColor: '#D4CF73' },
-      subtitle: '1 cấp độ hoàn thành • 2 đang học',
-    },
-    {
-      title: 'Nghe hiểu',
-      icon: { name: 'headset-outline', bgColor: 'rgba(149, 212, 235, 0.4)', iconColor: '#446498' },
-      subtitle: '1 cấp độ hoàn thành • 2 đang học',
-    },
-    {
-      title: 'Thi JLPT',
-      icon: { name: 'document-text-outline', bgColor: 'rgba(255, 203, 164, 0.5)', iconColor: '#CB8561' },
-      subtitle: '1 cấp độ hoàn thành • 2 đang học',
-    },
-  ];
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      setLoading(true);
+      const data = await getNotebookCategories();
+      
+      const formattedCategories = data.map(item => ({
+        title: item.category,
+        icon: ICON_CONFIG[item.category] || ICON_CONFIG['Từ vựng'],
+        subtitle: `${item.completed_levels} cấp độ hoàn thành • ${item.in_progress_levels} đang học`,
+      }));
+      
+      setCategories(formattedCategories);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCategoryPress = (categoryTitle) => {
     navigation.navigate('NotebookDetail', { notebookType: categoryTitle });
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ marginTop: 16, color: Colors.textSecondary }}>Đang tải...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

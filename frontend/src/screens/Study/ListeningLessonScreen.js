@@ -1,26 +1,135 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
 import { Colors } from '../../constants/Colors';
+import { getListeningLessonDetail, submitListeningAttempt } from '../../services/listeningService';
 
 export default function ListeningLessonScreen({ navigation, route }) {
   const { category = 'Nghe hiểu', level = 'N5', lessonId = 1, title = 'Bài 1: Giới thiệu bản thân' } = route?.params || {};
   const [showScript, setShowScript] = useState(false);
   const [showVocabulary, setShowVocabulary] = useState(false);
-  const [showScriptTranslation, setShowScriptTranslation] = useState(false); // false = Japanese, true = Vietnamese
+  const [showScriptTranslation, setShowScriptTranslation] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration] = useState(150); // 2:30 in seconds
+  const [duration, setDuration] = useState(150);
   const [showResults, setShowResults] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [lesson, setLesson] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [audioLoading, setAudioLoading] = useState(false);
+  
+  const soundRef = useRef(null);
 
-  // Ensure showScriptTranslation is always defined
+  // Load lesson detail from API
+  useEffect(() => {
+    const loadLesson = async () => {
+      try {
+        setLoading(true);
+        const data = await getListeningLessonDetail(lessonId);
+        setLesson(data);
+        setDuration(data.duration_seconds || 150);
+        
+        // Load audio if available
+        if (data.audio_url) {
+          await loadAudio(data.audio_url);
+        }
+      } catch (error) {
+        console.error('Error loading listening lesson:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (lessonId) {
+      loadLesson();
+    }
+    
+    // Cleanup audio on unmount
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+    };
+  }, [lessonId]);
+
+  // Load audio file
+  const loadAudio = async (audioUrl) => {
+    try {
+      setAudioLoading(true);
+      
+      // Configure audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+      
+      // Create and load sound
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioUrl },
+        { shouldPlay: false },
+        onPlaybackStatusUpdate
+      );
+      
+      soundRef.current = sound;
+    } catch (error) {
+      console.error('Error loading audio:', error);
+      alert('Không thể tải file âm thanh');
+    } finally {
+      setAudioLoading(false);
+    }
+  };
+
+  // Handle playback status updates
+  const onPlaybackStatusUpdate = (status) => {
+    if (status.isLoaded) {
+      setIsPlaying(status.isPlaying);
+      setCurrentTime(Math.floor(status.positionMillis / 1000));
+      
+      if (status.durationMillis) {
+        setDuration(Math.floor(status.durationMillis / 1000));
+      }
+      
+      // Replay from start when finished
+      if (status.didJustFinish) {
+        soundRef.current?.setPositionAsync(0);
+        setIsPlaying(false);
+      }
+    }
+  };
+
+  // Toggle play/pause
+  const togglePlayPause = async () => {
+    if (!soundRef.current) {
+      alert('File âm thanh chưa sẵn sàng');
+      return;
+    }
+    
+    try {
+      const status = await soundRef.current.getStatusAsync();
+      if (status.isLoaded) {
+        if (status.isPlaying) {
+          await soundRef.current.pauseAsync();
+        } else {
+          await soundRef.current.playAsync();
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling play/pause:', error);
+    }
+  };
+
   const isShowingTranslation = showScriptTranslation === true;
 
-  const handleAnswerSelect = (questionId, answer) => {
+  const handleAnswerSelect = (questionId, choiceId) => {
     setSelectedAnswers(prev => ({
       ...prev,
-      [questionId]: answer
+      [questionId]: choiceId
     }));
   };
 
@@ -30,88 +139,79 @@ export default function ListeningLessonScreen({ navigation, route }) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Mock data
-  const scriptJP = '若いとき夢中で星座の名前を覚えた。夜空を見上げながら、一つ一つの星の位置を確認し、その美しさに感動した。';
-  const scriptVN = 'Khi còn trẻ, tôi đã say mê học thuộc tên các chòm sao. Tôi ngước nhìn bầu trời đêm, xác nhận vị trí của từng ngôi sao và cảm động trước vẻ đẹp của chúng.';
-
-  const vocabulary = [
-    { word: '若い', reading: 'わかい', meaning: 'trẻ, trẻ tuổi' },
-    { word: '夢中', reading: 'むちゅう', meaning: 'say mê, mê mẩn' },
-    { word: '星座', reading: 'せいざ', meaning: 'chòm sao' },
-  ];
-
-  const questions = [
-    {
-      id: 1,
-      questionNumber: 'Câu 1:',
-      sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '若い',
-      options: [
-        { id: 1, text: 'ちいさい' },
-        { id: 2, text: 'すくない' },
-        { id: 3, text: 'わかい' },
-        { id: 4, text: 'おさない' },
-      ],
-      correctAnswer: 3,
-      explanation: '「若い」có nghĩa là "trẻ, trẻ tuổi", đọc là "わかい".',
-      image: null,
-    },
-    {
-      id: 2,
-      questionNumber: 'Câu 2:',
-      sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '夢中',
-      options: [
-        { id: 1, text: 'むちゅう' },
-        { id: 2, text: 'むじゅう' },
-        { id: 3, text: 'むちゅ' },
-        { id: 4, text: 'むじゅ' },
-      ],
-      correctAnswer: 1,
-      explanation: '「夢中」có nghĩa là "say mê, mê mẩn", đọc là "むちゅう".',
-      image: null,
-    },
-    {
-      id: 3,
-      questionNumber: 'Câu 3:',
-      sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '星座',
-      options: [
-        { id: 1, text: 'せいざ' },
-        { id: 2, text: 'せいさ' },
-        { id: 3, text: 'せざ' },
-        { id: 4, text: 'せさ' },
-      ],
-      correctAnswer: 1,
-      explanation: '「星座」có nghĩa là "chòm sao", đọc là "せいざ".',
-      image: null,
-    },
-    {
-      id: 4,
-      questionNumber: 'Câu 4:',
-      sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '覚えた',
-      options: [
-        { id: 1, text: 'おぼえた' },
-        { id: 2, text: 'おぼえた' },
-        { id: 3, text: 'おぼえた' },
-        { id: 4, text: 'おぼえた' },
-      ],
-      correctAnswer: 1,
-      explanation: '「覚えた」là thể quá khứ của "覚える" (nhớ, học thuộc), đọc là "おぼえた".',
-      image: null,
-    },
-  ];
-
-  const handleSubmit = () => {
-    setShowResults(true);
+  const handleSubmit = async () => {
+    try {
+      setSubmitting(true);
+      
+      // Format answers for API
+      const formattedAnswers = Object.entries(selectedAnswers).map(([qId, cId]) => ({
+        question_id: parseInt(qId),
+        choice_id: cId
+      }));
+      
+      const submitResult = await submitListeningAttempt(lessonId, formattedAnswers);
+      setResult(submitResult);
+      setShowResults(true);
+    } catch (error) {
+      console.error('Error submitting answers:', error);
+      alert('Có lỗi khi nộp bài. Vui lòng thử lại!');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // Get data from lesson or use default
+  const scriptJP = lesson?.script_jp || '';
+  const scriptVN = lesson?.script_vn || '';
+  const vocabulary = lesson?.vocabularies || [];
+  const questions = lesson?.questions || [];
+  const audioUrl = lesson?.audio_url;
 
   const getQuestionResult = (question) => {
-    const userAnswer = selectedAnswers[question.id];
-    const isCorrect = userAnswer === question.correctAnswer;
-    return { isCorrect, userAnswer };
+    if (!result || !result.detail) {
+      return { isCorrect: false, userAnswer: null };
+    }
+    
+    const resultDetail = result.detail.find(d => d.question_id === question.id);
+    if (!resultDetail) {
+      return { isCorrect: false, userAnswer: null };
+    }
+    
+    return {
+      isCorrect: resultDetail.is_correct,
+      userAnswer: resultDetail.selected_choice_id,
+      correctAnswer: resultDetail.correct_choice_id,
+      explanation: resultDetail.explanation
+    };
   };
+
+  // Show loading
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ marginTop: 16, color: Colors.textSecondary }}>Đang tải...</Text>
+      </View>
+    );
+  }
+
+  // Show error if no lesson data
+  if (!lesson) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <Ionicons name="alert-circle-outline" size={48} color={Colors.textSecondary} />
+        <Text style={{ marginTop: 16, color: Colors.textSecondary, textAlign: 'center' }}>
+          Không thể tải bài học. Vui lòng thử lại!
+        </Text>
+        <TouchableOpacity 
+          style={{ marginTop: 20, padding: 12, backgroundColor: Colors.primary, borderRadius: 8 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={{ color: '#fff' }}>Quay lại</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -124,18 +224,26 @@ export default function ListeningLessonScreen({ navigation, route }) {
           <View style={styles.cardHeader}>
             <Ionicons name="headset-outline" size={20} color="#446498" />
             <Text style={styles.cardTitle}>Nghe đoạn hội thoại</Text>
+            {audioLoading && (
+              <ActivityIndicator size="small" color={Colors.primary} style={{ marginLeft: 8 }} />
+            )}
           </View>
           <View style={styles.audioPlayer}>
             <TouchableOpacity 
               style={styles.playButton}
-              onPress={() => setIsPlaying(!isPlaying)}
+              onPress={togglePlayPause}
               activeOpacity={0.7}
+              disabled={audioLoading || !audioUrl}
             >
-              <Ionicons name={isPlaying ? "pause" : "play"} size={22} color="#000000" />
+              {audioLoading ? (
+                <ActivityIndicator size="small" color="#000000" />
+              ) : (
+                <Ionicons name={isPlaying ? "pause" : "play"} size={22} color="#000000" />
+              )}
             </TouchableOpacity>
             <Text style={styles.audioTime}>{formatTime(currentTime)} / {formatTime(duration)}</Text>
             <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${(currentTime / duration) * 100}%` }]} />
+              <View style={[styles.progressFill, { width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%' }]} />
             </View>
             <TouchableOpacity style={styles.audioControl} activeOpacity={0.7}>
               <Ionicons name="volume-medium-outline" size={22} color="#000000" />
@@ -144,6 +252,9 @@ export default function ListeningLessonScreen({ navigation, route }) {
               <Ionicons name="ellipsis-vertical" size={22} color="#000000" />
             </TouchableOpacity>
           </View>
+          {!audioUrl && (
+            <Text style={styles.noAudioText}>Không có file âm thanh</Text>
+          )}
         </View>
 
         {/* Script Card */}
@@ -193,16 +304,19 @@ export default function ListeningLessonScreen({ navigation, route }) {
               <Ionicons name={showVocabulary ? "eye" : "eye-off"} size={20} color={Colors.textSecondary} />
             </TouchableOpacity>
           </View>
-          {showVocabulary && (
+          {showVocabulary && vocabulary.length > 0 && (
             <View style={styles.vocabularyList}>
               {vocabulary.map((item, index) => (
-                <View key={index} style={styles.vocabularyItem}>
+                <View key={item.id || index} style={styles.vocabularyItem}>
                   <Text style={styles.vocabWord}>{item.word}</Text>
                   <Text style={styles.vocabReading}>{item.reading}</Text>
                   <Text style={styles.vocabMeaning}>{item.meaning}</Text>
                 </View>
               ))}
             </View>
+          )}
+          {showVocabulary && vocabulary.length === 0 && (
+            <Text style={styles.emptyText}>Chưa có từ vựng nào</Text>
           )}
         </View>
 
@@ -216,14 +330,16 @@ export default function ListeningLessonScreen({ navigation, route }) {
           {questions.map((q, index) => {
             const result = showResults ? getQuestionResult(q) : null;
             const isCorrect = result?.isCorrect;
-            const userAnswer = result?.userAnswer;
+            const correctAnswerId = result?.correctAnswer;
+            const userAnswerId = result?.userAnswer;
+            const explanation = result?.explanation;
             
             return (
               <View key={q.id}>
                 {index > 0 && <View style={styles.questionDivider} />}
                 
                 <View style={styles.questionHeader}>
-                  <Text style={styles.questionNumber}>{q.questionNumber}</Text>
+                  <Text style={styles.questionNumber}>Câu {q.question_number}:</Text>
                   {showResults && (
                     <View style={[styles.resultBadge, isCorrect ? styles.resultBadgeCorrect : styles.resultBadgeIncorrect]}>
                       <Text style={styles.resultBadgeText}>{isCorrect ? 'Đúng' : 'Sai'}</Text>
@@ -236,19 +352,22 @@ export default function ListeningLessonScreen({ navigation, route }) {
                 )}
                 
                 <Text style={styles.questionSentence}>
-                  {q.sentence.split(q.underlinedWord).map((part, i, arr) => (
-                    <Text key={i}>
-                      {part}
-                      {i < arr.length - 1 && <Text style={styles.underlined}>{q.underlinedWord}</Text>}
-                    </Text>
-                  ))}
+                  {q.underlined_word ? (
+                    q.sentence.split(q.underlined_word).map((part, i, arr) => (
+                      <Text key={i}>
+                        {part}
+                        {i < arr.length - 1 && <Text style={styles.underlined}>{q.underlined_word}</Text>}
+                      </Text>
+                    ))
+                  ) : (
+                    q.sentence
+                  )}
                 </Text>
 
                 <View style={styles.optionsContainer}>
                   {q.options.map((option, optIndex) => {
-                    const optionNum = optIndex + 1;
-                    const isSelected = selectedAnswers[q.id] === optionNum;
-                    const isCorrectAnswer = showResults && optionNum === q.correctAnswer;
+                    const isSelected = selectedAnswers[q.id] === option.id;
+                    const isCorrectAnswer = showResults && option.id === correctAnswerId;
                     const isWrongAnswer = showResults && isSelected && !isCorrectAnswer;
                     
                     return (
@@ -274,16 +393,16 @@ export default function ListeningLessonScreen({ navigation, route }) {
                 </View>
 
                 <View style={styles.radioButtonsRow}>
-                  {[1, 2, 3, 4].map((num) => {
-                    const isSelected = selectedAnswers[q.id] === num;
-                    const isCorrectAnswer = showResults && num === q.correctAnswer;
+                  {q.options.map((option, optIndex) => {
+                    const isSelected = selectedAnswers[q.id] === option.id;
+                    const isCorrectAnswer = showResults && option.id === correctAnswerId;
                     const isWrongAnswer = showResults && isSelected && !isCorrectAnswer;
                     
                     return (
                       <TouchableOpacity
-                        key={num}
+                        key={option.id}
                         style={styles.radioButtonGroup}
-                        onPress={() => !showResults && handleAnswerSelect(q.id, num)}
+                        onPress={() => !showResults && handleAnswerSelect(q.id, option.id)}
                         activeOpacity={0.7}
                         disabled={showResults}
                       >
@@ -305,15 +424,15 @@ export default function ListeningLessonScreen({ navigation, route }) {
                           styles.radioLabel,
                           isCorrectAnswer && styles.radioLabelCorrect,
                           isWrongAnswer && styles.radioLabelIncorrect
-                        ]}>{num}</Text>
+                        ]}>{optIndex + 1}</Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
 
-                {showResults && !isCorrect && (
+                {showResults && explanation && (
                   <View style={styles.explanationBox}>
-                    <Text style={styles.explanationText}>{q.explanation}</Text>
+                    <Text style={styles.explanationText}>{explanation}</Text>
                   </View>
                 )}
               </View>
@@ -324,12 +443,30 @@ export default function ListeningLessonScreen({ navigation, route }) {
         {/* Submit Button */}
         {!showResults && (
           <TouchableOpacity 
-            style={styles.submitButton}
+            style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
             onPress={handleSubmit}
             activeOpacity={0.7}
+            disabled={submitting}
           >
-            <Text style={styles.submitButtonText}>Xem kết quả</Text>
+            {submitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.submitButtonText}>Xem kết quả</Text>
+            )}
           </TouchableOpacity>
+        )}
+
+        {/* Result Summary */}
+        {showResults && result && (
+          <View style={styles.resultSummary}>
+            <Text style={styles.resultTitle}>Kết quả của bạn</Text>
+            <Text style={styles.resultScore}>
+              {result.score}/{result.total} câu đúng
+            </Text>
+            <Text style={styles.resultPercent}>
+              {result.progress_percent}%
+            </Text>
+          </View>
         )}
 
         {showResults && (
@@ -374,6 +511,14 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
     alignSelf: 'center',
+  },
+  noAudioText: {
+    fontFamily: 'Nunito',
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   card: {
     width: 360,
@@ -707,6 +852,46 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     color: Colors.white,
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
+  emptyText: {
+    fontFamily: 'Nunito',
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
+  resultSummary: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 20,
+    marginHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  resultTitle: {
+    fontFamily: 'Nunito',
+    fontWeight: '700',
+    fontSize: 18,
+    color: Colors.textPrimary,
+    marginBottom: 12,
+  },
+  resultScore: {
+    fontFamily: 'Nunito',
+    fontWeight: '700',
+    fontSize: 32,
+    color: Colors.primary,
+    marginBottom: 4,
+  },
+  resultPercent: {
+    fontFamily: 'Nunito',
+    fontWeight: '600',
+    fontSize: 24,
+    color: Colors.secondary,
   },
   completeButton: {
     width: 360,

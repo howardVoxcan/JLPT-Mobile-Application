@@ -84,10 +84,9 @@ export default function JLPTPracticeNavigator() {
         <Stack.Screen 
             name="JLPTPracticeResult" 
             component={JLPTPracticeResultScreen}
-            options={({ navigation, route }) => ({
-            headerShown: true,
-            header: () => <CustomHeader title={`Kết quả Test ${route.params?.testId || 1}`} navigation={navigation} />,
-            })}
+            options={{
+            headerShown: false,
+            }}
         />
         <Stack.Screen 
             name="JLPTPracticeTestDetails" 

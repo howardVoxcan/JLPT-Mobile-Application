@@ -25,21 +25,3 @@ class Choice(models.Model):
     text = models.CharField(max_length=255)
     is_correct = models.BooleanField(default=False)
 
-class UserQuestionProgress(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
-    )
-    question = models.ForeignKey(
-        "study.Question",
-        on_delete=models.CASCADE
-    )
-
-    is_correct = models.BooleanField(default=False)
-    answered_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ("user", "question")
-
-    def __str__(self):
-        return f"{self.user_id} - Q{self.question_id}"

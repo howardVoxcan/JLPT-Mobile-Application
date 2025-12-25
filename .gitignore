@@ -47,3 +47,14 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# =========================
+# Documentation (exclude all .md except README.md)
+# =========================
+*.md
+!README.md
+
+# =========================
+# Database schema files
+# =========================
+*.dbml

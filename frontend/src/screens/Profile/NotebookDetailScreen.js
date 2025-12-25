@@ -1,12 +1,88 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { FontSizes, FontWeights } from '../../constants/Fonts';
 import { Spacing } from '../../constants/Spacing';
+import { getNotebookCategoryDetail } from '../../services/notebookService';
 
 export const NotebookDetailScreen = ({ navigation, route }) => {
   const { notebookType = 'Từ vựng' } = route?.params || {};
+  const [levels, setLevels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState({ completed: 0, inProgress: 0 });
+
+  useEffect(() => {
+    loadLevelDetails();
+  }, [notebookType]);
+
+  const loadLevelDetails = async () => {
+    try {
+      setLoading(true);
+      const data = await getNotebookCategoryDetail(notebookType);
+      
+      let completedCount = 0;
+      let inProgressCount = 0;
+      
+      const formattedLevels = data.map(level => {
+        let icon, borderColor;
+        
+        if (level.status === 'completed') {
+          icon = 'checkmark-done-circle-outline';
+          borderColor = Colors.secondary;
+          completedCount++;
+        } else if (level.status === 'in-progress') {
+          icon = 'time-outline';
+          borderColor = '#95D4EB';
+          inProgressCount++;
+        } else if (level.locked) {
+          icon = 'lock-closed-outline';
+          borderColor = Colors.textPlaceholder;
+        } else {
+          icon = 'book-outline';
+          borderColor = Colors.formStrokeDefault;
+        }
+        
+        const statusText = level.status === 'completed' ? 'Hoàn thành' : 
+                          level.status === 'in-progress' ? 'Đang học' : 
+                          level.locked ? 'Chưa học' : 'Chưa học';
+        
+        return {
+          level: level.level,
+          status: statusText,
+          lessonsCompleted: `${level.lessons_completed}/${level.total_lessons}`,
+          vocabulary: `${level.mastered_items} ${getItemLabel(notebookType)}`,
+          completionPercent: `${level.completion_percent}%`,
+          reviewedWords: `${level.reviewed_items}/${level.review_total}`,
+          completionWidth: level.completion_percent,
+          reviewWidth: level.review_total > 0 ? Math.round((level.reviewed_items / level.review_total) * 100) : 0,
+          icon,
+          borderColor,
+          locked: level.locked,
+          lockMessage: level.locked ? `Quay lại học tập ${notebookType} cấp độ ${level.level} trước để mở khóa` : null,
+        };
+      });
+      
+      setLevels(formattedLevels);
+      setSummary({ completed: completedCount, inProgress: inProgressCount });
+    } catch (error) {
+      console.error('Error loading level details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getItemLabel = (type) => {
+    switch (type) {
+      case 'Từ vựng': return 'từ';
+      case 'Kanji': return 'kanji';
+      case 'Ngữ pháp': return 'điểm ngữ pháp';
+      case 'Đọc hiểu': return 'bài đọc';
+      case 'Nghe hiểu': return 'bài nghe';
+      case 'Thi JLPT': return 'đề thi';
+      default: return 'mục';
+    }
+  };
 
   const getIconConfig = (type) => {
     switch (type) {
@@ -29,59 +105,14 @@ export const NotebookDetailScreen = ({ navigation, route }) => {
 
   const iconConfig = getIconConfig(notebookType);
 
-  const levels = [
-    {
-      level: 'N5',
-      status: 'Hoàn thành',
-      lessonsCompleted: '25/25',
-      vocabulary: '250 từ',
-      completionPercent: '100%',
-      reviewedWords: '250/300',
-      completionWidth: 100,
-      reviewWidth: 83,
-      icon: 'checkmark-done-circle-outline',
-      borderColor: Colors.secondary,
-      locked: false,
-    },
-    {
-      level: 'N4',
-      status: 'Đang học',
-      lessonsCompleted: '15/25',
-      vocabulary: '50 từ',
-      completionPercent: '60%',
-      reviewedWords: '50/300',
-      completionWidth: 57,
-      reviewWidth: 22,
-      icon: 'time-outline',
-      borderColor: '#95D4EB',
-      locked: false,
-    },
-    {
-      level: 'N3',
-      status: 'Đang học',
-      lessonsCompleted: '15/25',
-      vocabulary: '50 từ',
-      completionPercent: '60%',
-      reviewedWords: '50/300',
-      completionWidth: 57,
-      reviewWidth: 22,
-      icon: 'time-outline',
-      borderColor: '#95D4EB',
-      locked: false,
-    },
-    {
-      level: 'N2',
-      status: 'Chưa học',
-      locked: true,
-      lockMessage: `Quay lại học tập ${notebookType} cấp độ N2 trước để mở khóa`,
-    },
-    {
-      level: 'N1',
-      status: 'Chưa học',
-      locked: true,
-      lockMessage: `Quay lại học tập ${notebookType} cấp độ N1 trước để mở khóa`,
-    },
-  ];
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ marginTop: 16, color: Colors.textSecondary }}>Đang tải...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -101,7 +132,9 @@ export const NotebookDetailScreen = ({ navigation, route }) => {
           </View>
           <View style={styles.subjectInfo}>
             <Text style={styles.subjectTitle}>{notebookType}</Text>
-            <Text style={styles.subjectSubtitle}>1 cấp độ hoàn thành • 2 đang học</Text>
+            <Text style={styles.subjectSubtitle}>
+              {summary.completed} cấp độ hoàn thành • {summary.inProgress} đang học
+            </Text>
           </View>
         </View>
 

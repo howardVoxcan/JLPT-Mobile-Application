@@ -81,10 +81,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
               status,
               borderColor:
                 status === "completed"
-                  ? Colors.secondary
+                  ? "#B5EAD7"
                   : status === "in-progress"
                   ? "#95D4EB"
-                  : Colors.formStrokeDefault,
+                  : "#E1E1E1",
               buttonText:
                 status === "completed"
                   ? "Học lại"
@@ -93,10 +93,10 @@ export default function GrammarLevelScreen({ navigation, route }) {
                   : "Bắt đầu",
               buttonColor:
                 status === "completed"
-                  ? Colors.secondaryHover
+                  ? "#9CD9C3"
                   : status === "in-progress"
                   ? "#95D4EB"
-                  : Colors.primary,
+                  : "#FFB7C5",
             };
           });
 
@@ -166,9 +166,57 @@ export default function GrammarLevelScreen({ navigation, route }) {
             </View>
 
             <View style={styles.statsRow}>
-              <Text>{completedCount} hoàn thành</Text>
-              <Text>{inProgressCount} đang học</Text>
-              <Text>{notStartedCount} chưa học</Text>
+              <View style={styles.statItem}>
+                <Ionicons name="checkmark-done-circle-outline" size={20} color={Colors.success} />
+                <Text style={styles.statText}>{completedCount} hoàn thành</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Ionicons name="time-outline" size={20} color="#95D4EB" />
+                <Text style={styles.statText}>{inProgressCount} đang học</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Ionicons name="book-outline" size={20} color={Colors.textPlaceholder} />
+                <Text style={styles.statText}>{notStartedCount} chưa học</Text>
+              </View>
+            </View>
+
+            {/* Filter Tabs */}
+            <View style={styles.filterTabs}>
+              <TouchableOpacity 
+                style={[styles.filterTab, activeFilter === 'all' && styles.filterTabActive]}
+                onPress={() => setActiveFilter('all')}
+                activeOpacity={0.7}
+              >
+                {activeFilter === 'all' && <View style={styles.filterHighlight} />}
+                <Text style={styles.filterText}>Tất cả</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.filterTab, activeFilter === 'completed' && styles.filterTabActive]}
+                onPress={() => setActiveFilter('completed')}
+                activeOpacity={0.7}
+              >
+                {activeFilter === 'completed' && <View style={styles.filterHighlight} />}
+                <Text style={styles.filterText}>Hoàn thành</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.filterTab, activeFilter === 'in-progress' && styles.filterTabActive]}
+                onPress={() => setActiveFilter('in-progress')}
+                activeOpacity={0.7}
+              >
+                {activeFilter === 'in-progress' && <View style={styles.filterHighlight} />}
+                <Text style={styles.filterText}>Đang học</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.filterTab, activeFilter === 'not-started' && styles.filterTabActive]}
+                onPress={() => setActiveFilter('not-started')}
+                activeOpacity={0.7}
+              >
+                {activeFilter === 'not-started' && <View style={styles.filterHighlight} />}
+                <Text style={styles.filterText}>Chưa học</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -198,28 +246,15 @@ export default function GrammarLevelScreen({ navigation, route }) {
                 </TouchableOpacity>
               </View>
 
-              {/* ✅ TIẾN TRÌNH THEO ĐÚNG / TỔNG */}
-              <View style={styles.progressRow}>
-                <Text style={styles.progressText}>
-                  {lesson.correctCount}/{lesson.totalQuestions} câu đúng
-                </Text>
-                <Text style={styles.progressText}>{lesson.percent}%</Text>
-              </View>
-
-              <View style={styles.progressBarBg}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    { width: `${lesson.percent}%` },
-                  ]}
-                />
-              </View>
+              <Text style={styles.lessonSubtitle} numberOfLines={1}>
+                {lesson.grammarExamples || 'は、です、か、は、です、か'}
+              </Text>
 
               <View style={styles.lessonInfo}>
                 <View style={styles.infoItem}>
                   <MaterialCommunityIcons
                     name="text-box-outline"
-                    size={20}
+                    size={18}
                     color="#C5B9E8"
                   />
                   <Text style={styles.infoText}>
@@ -228,12 +263,43 @@ export default function GrammarLevelScreen({ navigation, route }) {
                 </View>
 
                 <View style={styles.infoItem}>
-                  <Ionicons name="book-outline" size={20} color="#FFCBA4" />
+                  <Ionicons name="book-outline" size={18} color="#FFCBA4" />
                   <Text style={styles.infoText}>
                     Bài tập ({lesson.totalQuestions})
                   </Text>
                 </View>
               </View>
+
+              {lesson.status === 'completed' && (
+                <View style={styles.completedBadge}>
+                  <Ionicons name="checkmark-circle" size={16} color={Colors.secondaryHover} />
+                  <Text style={styles.completedText}>Đã hoàn thành bài học và bài tập</Text>
+                </View>
+              )}
+
+              {lesson.status === 'in-progress' && (
+                <View style={styles.progressInfo}>
+                  <Text style={styles.progressInfoText}>Tiến độ</Text>
+                  <View style={styles.progressBarContainer}>
+                    <View style={styles.progressBarBgSmall}>
+                      <View style={[styles.progressBarFillSmall, { width: `${lesson.percent}%` }]} />
+                    </View>
+                    <Text style={styles.progressInfoValue}>{lesson.percent}%</Text>
+                  </View>
+                </View>
+              )}
+              
+              {lesson.status === 'not-started' && (
+                <View style={styles.progressInfo}>
+                  <Text style={styles.progressInfoText}>Tiến độ</Text>
+                  <View style={styles.progressBarContainer}>
+                    <View style={styles.progressBarBgSmall}>
+                      <View style={[styles.progressBarFillSmall, { width: '0%' }]} />
+                    </View>
+                    <Text style={styles.progressInfoValue}>0%</Text>
+                  </View>
+                </View>
+              )}
             </TouchableOpacity>
           ))}
 
@@ -260,24 +326,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  header: {
-    width: "100%",
-    height: 88,
-    backgroundColor: Colors.secondaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backButton: {
-    position: "absolute",
-    left: 16,
-    top: 52,
-  },
-  headerTitle: {
-    fontWeight: "700",
-    fontSize: 24,
-    color: Colors.textPrimary,
-  },
-
   scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 14,
@@ -285,18 +333,36 @@ const styles = StyleSheet.create({
   },
 
   progressCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: '#FFB7C5',
     borderRadius: 5,
     padding: 14,
     marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
   },
 
   progressHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: 'center',
     marginBottom: 8,
+  },
+
+  progressTitle: {
+    fontWeight: '700',
+    fontSize: 16,
+    color: '#000000',
+  },
+
+  progressPercent: {
+    fontWeight: '400',
+    fontSize: 13,
+    color: '#000000',
   },
 
   progressBarBg: {
@@ -304,47 +370,116 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.formStrokeDefault,
     borderRadius: 5,
     overflow: "hidden",
-    marginBottom: 8,
+    marginBottom: 10,
   },
+
   progressBarFill: {
     height: "100%",
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FFB7C5',
+    borderRadius: 5,
+    minWidth: 0,
   },
 
   statsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
+    marginBottom: 12,
+  },
+
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+
+  statText: {
+    fontWeight: '400',
+    fontSize: 13,
+    color: '#000000',
+  },
+
+  filterTabs: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#FFB7C5',
+    paddingTop: 12,
+  },
+
+  filterTab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    position: 'relative',
+    minHeight: 32,
+    justifyContent: 'center',
+  },
+
+  filterTabActive: {
+    backgroundColor: 'transparent',
+  },
+
+  filterHighlight: {
+    position: 'absolute',
+    width: '100%',
+    height: 17,
+    backgroundColor: '#FFE4DC',
+    borderRadius: 4,
+    bottom: 6,
+    alignSelf: 'center',
+  },
+
+  filterText: {
+    fontWeight: '400',
+    fontSize: 13,
+    color: Colors.textSecondary,
+    zIndex: 1,
   },
 
   lessonCard: {
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderRadius: 5,
-    padding: 14,
+    padding: 16,
     marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 5,
   },
 
   lessonHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 6,
+    alignItems: 'center',
+    marginBottom: 8,
   },
 
   lessonTitle: {
+    flex: 1,
     fontWeight: "700",
     fontSize: 16,
+    color: '#000000',
+    marginBottom: 4,
+  },
+
+  lessonSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: 8,
   },
 
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 5,
     gap: 4,
   },
 
   actionButtonText: {
+    fontWeight: "700",
     fontSize: 11,
     color: Colors.white,
   },
@@ -373,6 +508,67 @@ const styles = StyleSheet.create({
   },
 
   infoText: {
+    fontWeight: '400',
     fontSize: 13,
+    color: '#000000',
+  },
+
+  completedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(212, 244, 231, 0.5)',
+    borderRadius: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginTop: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#9CD9C3',
+  },
+
+  completedText: {
+    fontWeight: '400',
+    fontSize: 12,
+    color: Colors.secondaryHover,
+  },
+
+  progressInfo: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: Colors.formStrokeDefault,
+  },
+
+  progressInfoText: {
+    fontSize: 11,
+    color: '#000000',
+    marginBottom: 4,
+  },
+
+  progressBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  progressBarBgSmall: {
+    flex: 1,
+    height: 7,
+    backgroundColor: '#E1E1E1',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+
+  progressBarFillSmall: {
+    height: '100%',
+    backgroundColor: '#95D4EB',
+    borderRadius: 5,
+  },
+
+  progressInfoValue: {
+    fontSize: 10,
+    fontWeight: '400',
+    color: '#000000',
+    minWidth: 22,
   },
 });

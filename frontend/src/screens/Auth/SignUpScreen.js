@@ -131,11 +131,11 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.bold,
     color: Colors.textPrimary,
     textAlign: 'center',
-    marginTop: Spacing.xl,
+    marginTop: 140,
     marginBottom: Spacing.xl,
   },
   formContainer: {
-    gap: Spacing.lg,
+    gap: 30,
     marginBottom: Spacing.xxl,
   },
   buttonContainer: {

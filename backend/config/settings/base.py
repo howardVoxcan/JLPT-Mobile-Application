@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     "apps.exams",
     "apps.notebook",
     "apps.chatbot",
+    "apps.jlpt_practice",
+    "apps.shadowing",
 ]
 
 MIDDLEWARE = [

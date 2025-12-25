@@ -57,10 +57,10 @@ export const FavoritesScreen = ({ navigation }) => {
             <Text style={styles.meaning}>{item.meaning}</Text>
             
             {/* Example (toggleable) */}
-            {!isExampleHidden && (
+            {!isExampleHidden && item.examples && item.examples.length > 0 && (
               <View style={styles.exampleContainer}>
-                <Text style={styles.exampleJP}>{item.example}</Text>
-                <Text style={styles.exampleVN}>{item.exampleMeaning}</Text>
+                <Text style={styles.exampleJP}>{item.examples[0].sentence_jp}</Text>
+                <Text style={styles.exampleVN}>{item.examples[0].sentence_vi}</Text>
               </View>
             )}
           </View>
@@ -273,10 +273,12 @@ export const FavoritesScreen = ({ navigation }) => {
                 <>
                   <Text style={styles.meaningLarge}>{currentItem.vietnamese}</Text>
                   <Text style={styles.meaning}>{currentItem.meaning}</Text>
-                  <View style={styles.exampleContainer}>
-                    <Text style={styles.exampleJP}>{currentItem.example}</Text>
-                    <Text style={styles.exampleVN}>{currentItem.exampleMeaning}</Text>
-                  </View>
+                  {currentItem.examples && currentItem.examples.length > 0 && (
+                    <View style={styles.exampleContainer}>
+                      <Text style={styles.exampleJP}>{currentItem.examples[0].sentence_jp}</Text>
+                      <Text style={styles.exampleVN}>{currentItem.examples[0].sentence_vi}</Text>
+                    </View>
+                  )}
                 </>
               )
             ) : (

@@ -1,45 +1,57 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { FontSizes, FontWeights } from '../../constants/Fonts';
+import { getJLPTTests } from '../../services/jlptPracticeService';
 
 export default function JLPTPracticeLevelScreen({ navigation, route }) {
   const { level = 'N5' } = route?.params || {};
+  const [tests, setTests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - danh sách test
-  const tests = [
-    {
-      id: 1,
-      title: 'Test 1',
-      time: '140 phút',
-      score: '95/180',
-      hasScore: true,
-      buttons: [
-        { text: 'Thi lại', color: Colors.primary, action: 'retake' },
-        { text: 'Xem kết quả', color: Colors.secondary, action: 'view' },
-      ],
-    },
-    {
-      id: 2,
-      title: 'Test 2',
-      time: '140 phút',
-      score: null,
-      hasScore: false,
-      buttons: [
-        { text: 'Bắt đầu thi', color: Colors.primary, action: 'start' },
-      ],
-    },
-  ];
+  useEffect(() => {
+    loadTests();
+  }, [level]);
 
-  const handleButtonPress = (testId, action) => {
-    if (action === 'start' || action === 'retake') {
-      navigation.navigate('JLPTPracticeTest', { testId, level });
-    } else if (action === 'view') {
-      // TODO: Navigate to results screen
-      console.log(`View results for test ${testId}`);
+  const loadTests = async () => {
+    try {
+      setLoading(true);
+      const data = await getJLPTTests(level);
+      setTests(data);
+    } catch (error) {
+      console.error('Error loading tests:', error);
+      setTests([]);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleButtonPress = (test, action, lastAttemptId = null) => {
+    if (action === 'start' || action === 'retake') {
+      navigation.navigate('JLPTPracticeTest', { 
+        testId: test.id, 
+        level: test.level 
+      });
+    } else if (action === 'view') {
+      if (lastAttemptId) {
+        navigation.navigate('JLPTPracticeResult', { 
+          attemptId: lastAttemptId,
+          testId: test.id,
+          level: test.level 
+        });
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ marginTop: 16, color: Colors.textSecondary }}>Đang tải...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -53,43 +65,72 @@ export default function JLPTPracticeLevelScreen({ navigation, route }) {
         </View>
 
         {/* Test Cards */}
-        {tests.map((test) => (
-          <View key={test.id} style={styles.testCard}>
-            <Text style={styles.testTitle}>{test.title}</Text>
+        {tests.map((test) => {
+          const hasAttempted = test.has_attempted;
+          const bestScore = test.user_best_score;
+          
+          return (
+            <View key={test.id} style={styles.testCard}>
+              <Text style={styles.testTitle}>{test.title}</Text>
 
-            {/* Time Row */}
-            <View style={styles.infoRow}>
-              <Ionicons name="time-outline" size={16} color="#1D1B20" />
-              <Text style={styles.infoLabel}>Thời gian:</Text>
-              <Text style={styles.infoValue}>{test.time}</Text>
-            </View>
+              {/* Time Row */}
+              <View style={styles.infoRow}>
+                <Ionicons name="time-outline" size={16} color="#1D1B20" />
+                <Text style={styles.infoLabel}>Thời gian:</Text>
+                <Text style={styles.infoValue}>{test.duration_minutes} phút</Text>
+              </View>
 
-            {/* Score Row */}
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="trophy-outline" size={16} color="#1E1E1E" />
-              <Text style={styles.infoLabel}>Điểm:</Text>
-              {test.hasScore ? (
-                <Text style={styles.infoValue}>{test.score}</Text>
-              ) : (
-                <View style={{ flex: 1 }} />
-              )}
-            </View>
+              {/* Score Row */}
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="trophy-outline" size={16} color="#1E1E1E" />
+                <Text style={styles.infoLabel}>Điểm:</Text>
+                {hasAttempted && bestScore !== null ? (
+                  <Text style={styles.infoValue}>{bestScore}/{test.total_score}</Text>
+                ) : (
+                  <View style={{ flex: 1 }} />
+                )}
+              </View>
 
-            {/* Buttons */}
-            <View style={styles.buttonsRow}>
-              {test.buttons.map((button, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[styles.actionButton, { backgroundColor: button.color }]}
-                  onPress={() => handleButtonPress(test.id, button.action)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.actionButtonText}>{button.text}</Text>
-                </TouchableOpacity>
-              ))}
+              {/* Buttons */}
+              <View style={styles.buttonsRow}>
+                {hasAttempted ? (
+                  <>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: Colors.primary }]}
+                      onPress={() => handleButtonPress(test, 'retake')}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.actionButtonText}>Thi lại</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: Colors.secondary }]}
+                      onPress={() => handleButtonPress(test, 'view', test.last_attempt_id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.actionButtonText}>Xem kết quả</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: Colors.primary }]}
+                    onPress={() => handleButtonPress(test, 'start')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.actionButtonText}>Bắt đầu thi</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
+          );
+        })}
+
+        {tests.length === 0 && (
+          <View style={{ alignItems: 'center', marginTop: 40 }}>
+            <Text style={{ color: Colors.textSecondary }}>
+              Chưa có đề thi nào cho level {level}
+            </Text>
           </View>
-        ))}
+        )}
 
         <View style={{ height: 20 }} />
       </ScrollView>

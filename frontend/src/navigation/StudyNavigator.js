@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import StudyScreen from '../screens/Study/StudyScreen';
 import GrammarLevelScreen from '../screens/Study/GrammarLevelScreen';
 import GrammarLessonScreen from '../screens/Study/GrammarLessonScreen';
+import GrammarResultScreen from '../screens/Study/GrammarResultScreen';
 import VocabularyLevelScreen from '../screens/Study/VocabularyLevelScreen';
 import VocabularyFlashcardScreen from '../screens/Study/VocabularyFlashcardScreen';
 import KanjiLevelScreen from '../screens/Study/KanjiLevelScreen';
@@ -85,6 +86,13 @@ export default function StudyNavigator() {
         options={({ navigation }) => ({
           headerShown: true,
           header: () => <CustomHeader title="Ngữ pháp" navigation={navigation} />,
+        })}
+      />
+      <Stack.Screen 
+        name="GrammarResult" 
+        component={GrammarResultScreen}
+        options={({ navigation }) => ({
+          headerShown: false,
         })}
       />
       <Stack.Screen 

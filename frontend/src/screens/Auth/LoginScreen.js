@@ -44,9 +44,11 @@ export const LoginScreen = ({ navigation }) => {
           
           {/* Illustration */}
           <View style={styles.illustrationContainer}>
-            <View style={styles.illustrationPlaceholder}>
-              <Text style={styles.illustrationText}>👋</Text>
-            </View>
+            <Image 
+              source={require('../../../assets/login-illustration.png')}
+              style={styles.illustration}
+              resizeMode="contain"
+            />
           </View>
           
           <View style={styles.formContainer}>
@@ -111,21 +113,16 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.bold,
     color: Colors.textPrimary,
     textAlign: 'center',
-    marginTop: Spacing.xl,
+    marginTop: 110,
     marginBottom: Spacing.xl,
   },
   illustrationContainer: {
     alignItems: 'center',
     marginBottom: Spacing.xxl,
   },
-  illustrationPlaceholder: {
+  illustration: {
     width: 139,
     height: 146,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  illustrationText: {
-    fontSize: 80,
   },
   formContainer: {
     gap: Spacing.lg,

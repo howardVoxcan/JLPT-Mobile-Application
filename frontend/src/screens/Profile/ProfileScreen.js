@@ -15,6 +15,7 @@ import { Colors } from "../../constants/Colors";
 import { Spacing } from "../../constants/Spacing";
 
 import { getMe, logout } from "../../services/authService";
+import { getNotebookCategories } from "../../services/notebookService";
 
 const STATUSBAR_HEIGHT =
   Platform.OS === "ios" ? 50 : StatusBar.currentHeight || 24;
@@ -22,23 +23,53 @@ const STATUSBAR_HEIGHT =
 export default function ProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notebooks, setNotebooks] = useState([]);
 
   /* ========================
-   * LOAD USER PROFILE
+   * LOAD USER PROFILE & NOTEBOOKS
    * ======================== */
   useEffect(() => {
-    const loadMe = async () => {
+    const loadData = async () => {
       try {
-        const data = await getMe();
-        setUser(data);
+        const [userData, notebookData] = await Promise.all([
+          getMe(),
+          getNotebookCategories()
+        ]);
+        setUser(userData);
+        
+        // Transform API data to notebook format
+        // Group into rows of 3
+        const transformed = notebookData.map(cat => {
+          // Find the highest level with progress
+          let highestLevel = 'N5';
+          if (cat.completed_levels > 0) {
+            const levels = ['N5', 'N4', 'N3', 'N2', 'N1'];
+            highestLevel = levels[Math.min(cat.completed_levels - 1, 4)];
+          } else if (cat.in_progress_levels > 0) {
+            const levels = ['N5', 'N4', 'N3', 'N2', 'N1'];
+            highestLevel = levels[Math.min(cat.in_progress_levels - 1, 4)];
+          }
+          
+          return {
+            title: cat.category,
+            level: highestLevel
+          };
+        });
+        
+        // Group into rows of 3
+        const rows = [];
+        for (let i = 0; i < transformed.length; i += 3) {
+          rows.push(transformed.slice(i, i + 3));
+        }
+        setNotebooks(rows);
       } catch (error) {
-        console.error("Get profile failed:", error);
+        console.error("Get profile/notebooks failed:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadMe();
+    loadData();
   }, []);
 
   /* ========================
@@ -62,21 +93,6 @@ export default function ProfileScreen({ navigation }) {
     });
   };
 
-  /* ========================
-   * NOTEBOOK MOCK (giữ nguyên)
-   * ======================== */
-  const notebooks = [
-    [
-      { title: "Từ vựng", level: "N3" },
-      { title: "Kanji", level: "N4" },
-      { title: "Ngữ pháp", level: "N3" },
-    ],
-    [
-      { title: "Đọc hiểu", level: "N5" },
-      { title: "Nghe hiểu", level: "N5" },
-      { title: "Thi JLPT", level: "N5" },
-    ],
-  ];
 
   /* ========================
    * LOADING UI
@@ -145,7 +161,12 @@ export default function ProfileScreen({ navigation }) {
               color={Colors.secondaryHover}
             />
             <Text style={styles.menuText}>Lưu trữ yêu thích</Text>
-            <Ionicons name="chevron-forward" size={28} />
+            <Ionicons 
+              name="chevron-forward" 
+              size={24} 
+              color={Colors.textSecondary}
+              style={styles.chevronIcon}
+            />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -158,7 +179,12 @@ export default function ProfileScreen({ navigation }) {
               color={Colors.secondaryHover}
             />
             <Text style={styles.menuText}>Cài đặt chung</Text>
-            <Ionicons name="chevron-forward" size={28} />
+            <Ionicons 
+              name="chevron-forward" 
+              size={24} 
+              color={Colors.textSecondary}
+              style={styles.chevronIcon}
+            />
           </TouchableOpacity>
 
           {/* LOGOUT */}
@@ -175,26 +201,41 @@ export default function ProfileScreen({ navigation }) {
 
         {/* ================= NOTEBOOK ================= */}
         <View style={styles.notebookSection}>
-          <View style={styles.notebookHeader}>
+          <TouchableOpacity
+            style={styles.notebookHeader}
+            onPress={() => navigation.navigate("Notebook")}
+            activeOpacity={0.7}
+          >
             <MaterialCommunityIcons
               name="notebook-outline"
               size={32}
               color={Colors.secondaryHover}
             />
             <Text style={styles.menuText}>Sổ tay học tập</Text>
-          </View>
+            <Ionicons 
+              name="chevron-forward" 
+              size={24} 
+              color={Colors.textSecondary}
+              style={styles.chevronIcon}
+            />
+          </TouchableOpacity>
 
           {notebooks.map((row, rowIndex) => (
             <View key={rowIndex} style={styles.notebookRow}>
               {row.map((item, index) => (
-                <View key={index} style={styles.notebookCard}>
+                <TouchableOpacity 
+                  key={index} 
+                  style={styles.notebookCard}
+                  onPress={() => navigation.navigate("NotebookDetail", { notebookType: item.title })}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.notebookTop}>
                     <Text style={styles.notebookText}>{item.title}</Text>
                   </View>
                   <View style={styles.notebookBottom}>
                     <Text style={styles.notebookText}>{item.level}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           ))}
@@ -321,6 +362,14 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  notebookText: {
+    fontFamily: 'Nunito',
+    fontWeight: '400',
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#000000',
+    textAlign: 'center',
   },
   notebookTitle: {
     fontFamily: 'Nunito',

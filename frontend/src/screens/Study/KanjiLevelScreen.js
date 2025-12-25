@@ -1,72 +1,131 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../constants/Colors';
+import { getKanjiUnits } from '../../services/kanjiService';
 
 export default function KanjiLevelScreen({ navigation, route }) {
-  const { category = 'Kanji', level = 'N5' } = route?.params || {};
+  const { category = 'Kanji', level = 'N5', lessonCompleted } = route?.params || {};
   const [activeFilter, setActiveFilter] = useState('all');
+  const [units, setUnits] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [completedLessons, setCompletedLessons] = useState(new Set());
+  const [lessonProgress, setLessonProgress] = useState({});
 
-  const handleLessonPress = (unit, lesson) => {
+  // Load progress từ AsyncStorage
+  const loadAllProgress = async (unitsData) => {
+    try {
+      const progressMap = {};
+      
+      // Load progress cho tất cả lessons
+      for (const unit of unitsData) {
+        if (unit.lessons) {
+          for (const lesson of unit.lessons) {
+            const progressKey = `lesson_progress_${lesson.id}`;
+            const savedProgress = await AsyncStorage.getItem(progressKey);
+            if (savedProgress) {
+              const progress = JSON.parse(savedProgress);
+              progressMap[lesson.id] = progress;
+            }
+          }
+        }
+      }
+      
+      setLessonProgress(progressMap);
+    } catch (error) {
+      console.error('Error loading progress:', error);
+    }
+  };
+
+  // Load units from API
+  useEffect(() => {
+    const loadUnits = async () => {
+      try {
+        setLoading(true);
+        const data = await getKanjiUnits(level);
+        setUnits(data);
+        await loadAllProgress(data);
+      } catch (error) {
+        console.error('Error loading units:', error);
+        setUnits([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUnits();
+  }, [level]);
+
+  // Reload progress khi quay lại màn hình
+  useFocusEffect(
+    React.useCallback(() => {
+      if (units.length > 0) {
+        loadAllProgress(units);
+      }
+    }, [units])
+  );
+
+  // Handle lesson completed
+  useEffect(() => {
+    if (lessonCompleted) {
+      setCompletedLessons(prev => new Set([...prev, lessonCompleted]));
+    }
+  }, [lessonCompleted]);
+
+  const handleLessonPress = (lessonId, unit, lessonNumber) => {
     navigation.navigate('KanjiFlashcard', { 
+      lessonId,
       category, 
       level,
       unit,
-      lesson
+      lesson: `(${lessonNumber})`
     });
   };
 
-  // Mock data - danh sách bài học kanji
-  const lessons = [
-    {
-      id: 1,
-      unit: '第1週',
-      lesson: '(1)',
-      title: '第1週 (1) - 駐車場',
-      kanjiCount: 15,
-      status: 'completed',
-      progress: 100,
-      borderColor: Colors.secondary,
-      buttonText: 'Học lại',
-      buttonColor: Colors.secondaryHover,
-    },
-    {
-      id: 2,
-      unit: '第1週',
-      lesson: '(2)',
-      title: '第1週 (2) - 学校',
-      kanjiCount: 18,
-      status: 'completed',
-      progress: 100,
-      borderColor: Colors.secondary,
-      buttonText: 'Học lại',
-      buttonColor: Colors.secondaryHover,
-    },
-    {
-      id: 3,
-      unit: '第2週',
-      lesson: '(1)',
-      title: '第2週 (1) - 時間',
-      kanjiCount: 20,
-      status: 'in-progress',
-      progress: 60,
-      borderColor: '#95D4EB',
-      buttonText: 'Học tiếp',
-      buttonColor: '#95D4EB',
-    },
-    {
-      id: 4,
-      unit: '第2週',
-      lesson: '(2)',
-      title: '第2週 (2) - 場所',
-      kanjiCount: 22,
-      status: 'not-started',
-      progress: 0,
-      borderColor: '#E1E1E1',
-      buttonText: 'Bắt đầu',
-      buttonColor: Colors.primary,
-    },
-  ];
+  // Transform API data to lessons format
+  const lessons = units.flatMap(unit => 
+    unit.lessons?.map(lesson => {
+      const kanjiCount = lesson.kanji_count || 0;
+      const savedProgress = lessonProgress[lesson.id];
+      
+      let status = 'not-started';
+      let progress = 0;
+      let borderColor = '#E1E1E1';
+      let buttonText = 'Bắt đầu';
+      let buttonColor = Colors.primary;
+      
+      if (savedProgress) {
+        if (savedProgress.status === 'completed' || savedProgress.progress === 100) {
+          status = 'completed';
+          progress = 100;
+          borderColor = Colors.secondary;
+          buttonText = 'Học lại';
+          buttonColor = Colors.secondaryHover;
+        } else if (savedProgress.status === 'in-progress') {
+          status = 'in-progress';
+          progress = savedProgress.progress || 0;
+          borderColor = '#95D4EB';
+          buttonText = 'Tiếp tục';
+          buttonColor = '#95D4EB';
+        }
+      }
+      
+      return {
+        id: lesson.id,
+        unit: unit.unit_name,
+        lesson: `(${lesson.lesson_number})`,
+        title: `${unit.unit_name} (${lesson.lesson_number})${lesson.lesson_name ? ' - ' + lesson.lesson_name : ''}`,
+        kanjiCount: kanjiCount,
+        status,
+        progress,
+        borderColor,
+        buttonText,
+        buttonColor,
+      };
+    }) || []
+  );
 
   const completedCount = lessons.filter(l => l.status === 'completed').length;
   const inProgressCount = lessons.filter(l => l.status === 'in-progress').length;
@@ -81,6 +140,16 @@ export default function KanjiLevelScreen({ navigation, route }) {
     if (activeFilter === 'not-started') return lesson.status === 'not-started';
     return true;
   });
+
+  // Show loading
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ marginTop: 16, color: Colors.textSecondary }}>Đang tải...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -162,14 +231,14 @@ export default function KanjiLevelScreen({ navigation, route }) {
               key={lesson.id}
               style={[styles.lessonCard, { borderColor: lesson.borderColor }]}
               activeOpacity={0.7}
-              onPress={() => handleLessonPress(lesson.unit, lesson.lesson)}
+              onPress={() => handleLessonPress(lesson.id, lesson.unit, lesson.lesson.replace(/[()]/g, ''))}
             >
               <View style={styles.lessonHeader}>
                 <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: lesson.buttonColor }]}
                   activeOpacity={0.7}
-                  onPress={() => handleLessonPress(lesson.unit, lesson.lesson)}
+                  onPress={() => handleLessonPress(lesson.id, lesson.unit, lesson.lesson.replace(/[()]/g, ''))}
                 >
                   <Ionicons name="play" size={16} color={Colors.white} />
                   <Text style={styles.actionButtonText}>{lesson.buttonText}</Text>
@@ -231,13 +300,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.primary,
-    borderRadius: 5,
-    padding: 14,
+    borderRadius: 8,
+    padding: 16,
     marginBottom: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
     elevation: 5,
   },
   progressHeader: {
@@ -319,13 +388,13 @@ const styles = StyleSheet.create({
   lessonCard: {
     backgroundColor: Colors.white,
     borderWidth: 1,
-    borderRadius: 5,
-    padding: 14,
+    borderRadius: 8,
+    padding: 16,
     marginBottom: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
     elevation: 5,
   },
   lessonHeader: {
@@ -337,16 +406,22 @@ const styles = StyleSheet.create({
   lessonTitle: {
     flex: 1,
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: 17,
     color: '#000000',
+    lineHeight: 24,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
     gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
   actionButtonText: {
     fontWeight: '700',

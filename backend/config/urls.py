@@ -32,6 +32,10 @@ urlpatterns = [
     path("api/reading/", include("apps.reading.urls")),
     path("api/listening/", include("apps.listening.urls")),
     path("api/vocab/", include("apps.vocab.urls")),
+    path("api/kanji/", include("apps.kanji.urls")),
+    path("api/jlpt-practice/", include("apps.jlpt_practice.urls")),
+    path("api/notebook/", include("apps.notebook.urls")),
+    path("api/shadowing/", include("apps.shadowing.urls")),
 ]
 
 if settings.DEBUG:

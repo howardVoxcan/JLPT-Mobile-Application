@@ -1,116 +1,80 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../constants/Colors';
 import { useFavorites } from '../../context/FavoritesContext';
+import { getKanjiLessonDetail, updateKanjiProgress } from '../../services/kanjiService';
 
 const { width } = Dimensions.get('window');
 
 export default function KanjiFlashcardScreen({ navigation, route }) {
-  const { unit = '第1週', lesson = '(1)', level = 'N5' } = route?.params || {};
+  const { lessonId, unit = '第1週', lesson = '(1)', level = 'N5' } = route?.params || {};
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [cardState, setCardState] = useState('detail'); // 'detail', 'front', 'back'
+  const [cardState, setCardState] = useState('detail');
+  const [kanjiList, setKanjiList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [lessonData, setLessonData] = useState(null);
   const { addKanjiFavorite, removeKanjiFavorite, isKanjiFavorite } = useFavorites();
 
-  // Mock kanji data - 第1週 (1) - 駐車場
-  const week1Lesson1 = [
-    {
-      id: '1-1',
-      kanji: '駐',
-      hiragana: 'ちゅう',
-      vietnamese: 'TRÚ',
-      strokeCount: 15,
-      kunyomi: 'ちゅう',
-      onyomi: '',
-      meaning: 'Đóng. Lưu ở lại chỗ nào cũng gọi là trú.',
-      vocabulary: {
-        hiragana: 'ちゅうしゃ',
-        kanji: '駐車',
-        reading: 'TRÚ XA',
-        meaning: 'đỗ xe',
-      },
-    },
-    {
-      id: '1-2',
-      kanji: '車',
-      hiragana: 'しゃ',
-      vietnamese: 'XA',
-      strokeCount: 7,
-      kunyomi: 'くるま',
-      onyomi: 'シャ',
-      meaning: 'xe, xe cộ',
-      vocabulary: {
-        hiragana: 'じどうしゃ',
-        kanji: '自動車',
-        reading: 'TỰ ĐỘNG XA',
-        meaning: 'ô tô',
-      },
-    },
-    {
-      id: '1-3',
-      kanji: '場',
-      hiragana: 'ば',
-      vietnamese: 'TRƯỜNG',
-      strokeCount: 12,
-      kunyomi: '',
-      onyomi: 'ジョウ',
-      meaning: 'nơi, chỗ, địa điểm',
-      vocabulary: {
-        hiragana: 'ばしょ',
-        kanji: '場所',
-        reading: 'TRƯỜNG SỞ',
-        meaning: 'địa điểm',
-      },
-    },
-  ];
+  // Load kanji data from API
+  useEffect(() => {
+    const loadKanjiLesson = async () => {
+      if (!lessonId) {
+        setLoading(false);
+        return;
+      }
 
-  // Mock kanji data - 第1週 (2)
-  const week1Lesson2 = [
-    {
-      id: '2-1',
-      kanji: '学',
-      hiragana: 'がく',
-      vietnamese: 'HỌC',
-      strokeCount: 8,
-      kunyomi: 'まなぶ',
-      onyomi: 'ガク',
-      meaning: 'học, học tập',
-      vocabulary: {
-        hiragana: 'がっこう',
-        kanji: '学校',
-        reading: 'HỌC HIỆU',
-        meaning: 'trường học',
-      },
-    },
-    {
-      id: '2-2',
-      kanji: '校',
-      hiragana: 'こう',
-      vietnamese: 'HIỆU',
-      strokeCount: 10,
-      kunyomi: '',
-      onyomi: 'コウ',
-      meaning: 'trường học',
-      vocabulary: {
-        hiragana: 'がっこう',
-        kanji: '学校',
-        reading: 'HỌC HIỆU',
-        meaning: 'trường học',
-      },
-    },
-  ];
+      try {
+        setLoading(true);
+        console.log('Loading lesson with ID:', lessonId);
+        const data = await getKanjiLessonDetail(lessonId);
+        console.log('Lesson data received:', data);
+        console.log('Number of kanjis:', data.kanjis?.length);
+        setLessonData(data);
+        
+        // Map data từ API sang format UI (stroke_count -> strokeCount)
+        const mappedKanjis = data.kanjis.map(k => ({
+          id: k.id,
+          kanji: k.kanji,
+          hiragana: k.hiragana,
+          vietnamese: k.vietnamese,
+          strokeCount: k.stroke_count,
+          kunyomi: k.kunyomi,
+          onyomi: k.onyomi,
+          meaning: k.meaning,
+          vocabulary: k.vocabulary,
+        }));
+        
+        console.log('Mapped kanjis:', mappedKanjis);
+        setKanjiList(mappedKanjis);
+        
+        // Load saved progress
+        try {
+          const progressKey = `lesson_progress_${lessonId}`;
+          const savedProgress = await AsyncStorage.getItem(progressKey);
+          if (savedProgress) {
+            const progress = JSON.parse(savedProgress);
+            if (progress.status === 'in-progress' && progress.currentIndex < mappedKanjis.length) {
+              setCurrentIndex(progress.currentIndex);
+              console.log('Restored progress:', progress);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading saved progress:', error);
+        }
+      } catch (error) {
+        console.error('Error loading kanji lesson:', error);
+        console.error('Error details:', error.response?.data || error.message);
+        // Fallback to empty array nếu lỗi
+        setKanjiList([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Get kanji based on unit and lesson params
-  const getKanji = () => {
-    if (unit === '第1週' && lesson === '(1)') {
-      return week1Lesson1;
-    } else if (unit === '第1週' && lesson === '(2)') {
-      return week1Lesson2;
-    }
-    return week1Lesson1; // default
-  };
-
-  const kanjiList = getKanji();
+    loadKanjiLesson();
+  }, [lessonId]);
   const currentKanji = kanjiList[currentIndex];
   const totalKanji = kanjiList.length;
   const progress = ((currentIndex + 1) / totalKanji) * 100;
@@ -123,12 +87,57 @@ export default function KanjiFlashcardScreen({ navigation, route }) {
 
   const isFavorite = isKanjiFavorite(currentKanji?.id);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIndex < totalKanji - 1) {
-      setCurrentIndex(currentIndex + 1);
+      // Chưa hết bài -> chuyển sang kanji tiếp theo
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
       setCardState('detail');
+      
+      // Lưu progress in-progress
+      try {
+        const progressKey = `lesson_progress_${lessonId}`;
+        await AsyncStorage.setItem(progressKey, JSON.stringify({
+          lessonId,
+          currentIndex: nextIndex,
+          totalKanji,
+          progress: Math.round((nextIndex / totalKanji) * 100),
+          status: 'in-progress',
+          lastUpdated: new Date().toISOString()
+        }));
+        
+        // Cập nhật progress cho kanji hiện tại (đã học)
+        await updateKanjiProgress(currentKanji.id, {
+          is_learned: true,
+          is_mastered: false,
+          review_count: 1,
+        });
+      } catch (error) {
+        console.error('Error updating progress:', error);
+      }
     } else {
-      // Navigate back to KanjiLevelScreen when completed
+      // Đã hết bài -> đánh dấu kanji cuối cùng và hoàn thành
+      try {
+        const progressKey = `lesson_progress_${lessonId}`;
+        await AsyncStorage.setItem(progressKey, JSON.stringify({
+          lessonId,
+          currentIndex: totalKanji,
+          totalKanji,
+          progress: 100,
+          status: 'completed',
+          lastUpdated: new Date().toISOString()
+        }));
+        
+        await updateKanjiProgress(currentKanji.id, {
+          is_learned: true,
+          is_mastered: true,
+          review_count: 1,
+        });
+      } catch (error) {
+        console.error('Error updating progress:', error);
+      }
+      
+      // Navigate back (dùng goBack thay vì navigate)
       navigation.goBack();
     }
   };
@@ -169,6 +178,34 @@ export default function KanjiFlashcardScreen({ navigation, route }) {
       addKanjiFavorite(currentKanji);
     }
   };
+
+  // Show loading
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ marginTop: 16, color: Colors.textSecondary }}>Đang tải...</Text>
+      </View>
+    );
+  }
+
+  // Show error if no data
+  if (!kanjiList || kanjiList.length === 0) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <Ionicons name="alert-circle-outline" size={64} color={Colors.textSecondary} />
+        <Text style={{ marginTop: 16, fontSize: 16, color: Colors.textPrimary, textAlign: 'center' }}>
+          Không có dữ liệu kanji
+        </Text>
+        <TouchableOpacity 
+          style={{ marginTop: 20, padding: 12, backgroundColor: Colors.primary, borderRadius: 10 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={{ color: Colors.white, fontWeight: '600' }}>Quay lại</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

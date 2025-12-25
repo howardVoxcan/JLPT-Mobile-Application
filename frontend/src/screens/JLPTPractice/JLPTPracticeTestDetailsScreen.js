@@ -1,109 +1,104 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { FontSizes, FontWeights } from '../../constants/Fonts';
+import { getJLPTAttemptDetail } from '../../services/jlptPracticeService';
 
 export default function JLPTPracticeTestDetailsScreen({ navigation, route }) {
-  const { testId = 1, level = 'N5' } = route?.params || {};
-  const [activeTab, setActiveTab] = useState('vocabulary');
+  const { attemptId, testId = 1, level = 'N5' } = route?.params || {};
+  const [activeTab, setActiveTab] = useState(null);
+  const [testData, setTestData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock questions with answers
-  const questions = [
-    {
-      id: 1,
-      type: 'vocabulary',
-      questionNumber: 'Câu 1',
-      sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '若い',
-      options: [
-        { id: 1, text: 'ちいさい', isCorrect: false },
-        { id: 2, text: 'すくない', isCorrect: false },
-        { id: 3, text: 'わかい', isCorrect: true },
-        { id: 4, text: 'おさない', isCorrect: false },
-      ],
-      userAnswer: 3,
-      isCorrect: true,
-    },
-    {
-      id: 2,
-      type: 'vocabulary',
-      questionNumber: 'Câu 2',
-      sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '若い',
-      options: [
-        { id: 1, text: 'ちいさい', isCorrect: false },
-        { id: 2, text: 'すくない', isCorrect: false },
-        { id: 3, text: 'わかい', isCorrect: true },
-        { id: 4, text: 'おさない', isCorrect: false },
-      ],
-      userAnswer: 2,
-      isCorrect: false,
-    },
-    {
-      id: 21,
-      type: 'grammar',
-      questionNumber: 'Câu 21',
-      sentence: 'この本は＿＿＿読むほど面白くなる。',
-      underlinedWord: '＿＿＿',
-      options: [
-        { id: 1, text: '読む', isCorrect: false },
-        { id: 2, text: '読んだ', isCorrect: true },
-        { id: 3, text: '読んで', isCorrect: false },
-        { id: 4, text: '読めば', isCorrect: false },
-      ],
-      userAnswer: 2,
-      isCorrect: true,
-    },
-    {
-      id: 22,
-      type: 'grammar',
-      questionNumber: 'Câu 22',
-      sentence: '彼は＿＿＿来ないと言っていた。',
-      underlinedWord: '＿＿＿',
-      options: [
-        { id: 1, text: 'きっと', isCorrect: false },
-        { id: 2, text: 'たぶん', isCorrect: true },
-        { id: 3, text: 'ぜひ', isCorrect: false },
-        { id: 4, text: '必ず', isCorrect: false },
-      ],
-      userAnswer: 1,
-      isCorrect: false,
-    },
-    {
-      id: 89,
-      type: 'listening',
-      questionNumber: 'Câu 89',
-      hasAudio: true,
-      audioDuration: '1:23',
-      sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '若い',
-      options: [
-        { id: 1, text: 'ちいさい', isCorrect: false },
-        { id: 2, text: 'すくない', isCorrect: false },
-        { id: 3, text: 'わかい', isCorrect: true },
-        { id: 4, text: 'おさない', isCorrect: false },
-      ],
-      userAnswer: 2,
-      isCorrect: false,
-    },
-  ];
+  useEffect(() => {
+    loadAttemptDetail();
+  }, [attemptId]);
 
-  const filteredQuestions = questions.filter(q => {
-    if (activeTab === 'vocabulary') return q.type === 'vocabulary';
-    if (activeTab === 'grammar') return q.type === 'grammar';
-    if (activeTab === 'listening') return q.type === 'listening';
-    return true;
-  });
+  const loadAttemptDetail = async () => {
+    try {
+      setLoading(true);
+      const data = await getJLPTAttemptDetail(attemptId);
+      setTestData(data);
+      
+      // Set active tab to first section type
+      if (data.sections && data.sections.length > 0) {
+        setActiveTab(data.sections[0].section_type);
+      }
+    } catch (error) {
+      console.error('Error loading attempt detail:', error);
+      Alert.alert('Lỗi', 'Không thể tải chi tiết bài thi. Vui lòng thử lại!');
+      navigation.goBack();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ marginTop: 16, color: Colors.textSecondary }}>Đang tải chi tiết...</Text>
+      </View>
+    );
+  }
+
+  if (!testData) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: Colors.textSecondary }}>Không tìm thấy dữ liệu</Text>
+      </View>
+    );
+  }
+
+  // Get current section and questions
+  const currentSection = testData.sections.find(s => s.section_type === activeTab);
+  const questions = currentSection?.questions || [];
+  const currentInstruction = questions.length > 0 ? questions[0].instruction : '';
+  
+  // Get section order for navigation
+  const sectionTypes = testData.sections.map(s => s.section_type);
+  const currentSectionIndex = sectionTypes.indexOf(activeTab);
+  const isFirstSection = currentSectionIndex === 0;
+  const isLastSection = currentSectionIndex === sectionTypes.length - 1;
+
+  const renderAudioPlayer = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    const durationText = `${minutes}:${secs.toString().padStart(2, '0')}`;
+    
+    return (
+      <View style={styles.audioPlayer}>
+        <TouchableOpacity style={styles.playButton}>
+          <Ionicons name="play" size={22} color="#000000" />
+        </TouchableOpacity>
+        <Text style={styles.audioTime}>0:00 / {durationText}</Text>
+        <View style={styles.timeline}>
+          <View style={styles.timelineBg} />
+          <View style={styles.timelineFill} />
+        </View>
+        <TouchableOpacity style={styles.audioControl}>
+          <Ionicons name="volume-high-outline" size={22} color="#000000" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.audioControl}>
+          <Ionicons name="ellipsis-vertical" size={22} color="#000000" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   const renderQuestionCard = (question) => {
-    const correctAnswer = question.options.find(opt => opt.isCorrect);
-
+    const choices = question.choices || [];
+    const userAnswerId = question.user_answer_id;
+    const isCorrect = question.is_correct;
+    const correctChoice = choices.find(c => c.is_correct);
+    const userChoice = choices.find(c => c.id === userAnswerId);
+    
     return (
       <View key={question.id} style={styles.questionCard}>
         <View style={styles.questionHeader}>
-          <Text style={styles.questionNumber}>{question.questionNumber}</Text>
-          {question.isCorrect ? (
+          <Text style={styles.questionNumber}>Câu {question.question_number}</Text>
+          {isCorrect ? (
             <View style={styles.correctBadge}>
               <Ionicons name="checkmark-circle" size={20} color="#7FDEAD" />
               <Text style={styles.correctText}>Đúng</Text>
@@ -115,73 +110,71 @@ export default function JLPTPracticeTestDetailsScreen({ navigation, route }) {
             </View>
           )}
         </View>
-
-        {question.hasAudio && (
-          <View style={styles.audioPlayer}>
-            <TouchableOpacity style={styles.playButton}>
-              <Ionicons name="play" size={22} color="#000000" />
-            </TouchableOpacity>
-            <Text style={styles.audioTime}>0:00 / {question.audioDuration}</Text>
-            <View style={styles.timeline}>
-              <View style={styles.timelineBg} />
-              <View style={styles.timelineFill} />
-            </View>
-            <TouchableOpacity style={styles.audioControl}>
-              <Ionicons name="volume-high-outline" size={22} color="#000000" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.audioControl}>
-              <Ionicons name="ellipsis-vertical" size={22} color="#000000" />
-            </TouchableOpacity>
+        
+        {question.audio_url && question.duration_seconds && renderAudioPlayer(question.duration_seconds)}
+        
+        {question.image_url && (
+          <View style={styles.questionImage}>
+            <Image source={{ uri: question.image_url }} style={styles.image} resizeMode="contain" />
           </View>
         )}
-
+        
         {question.sentence && (
           <Text style={styles.sentence}>
-            {question.sentence.split(question.underlinedWord).map((part, index, array) => (
-              <Text key={index}>
-                {part}
-                {index < array.length - 1 && <Text style={styles.underlinedWord}>{question.underlinedWord}</Text>}
-              </Text>
-            ))}
+            {question.underlined_word ? (
+              question.sentence.split(question.underlined_word).map((part, index, array) => (
+                <Text key={index}>
+                  {part}
+                  {index < array.length - 1 && <Text style={styles.underlinedWord}>{question.underlined_word}</Text>}
+                </Text>
+              ))
+            ) : (
+              question.sentence
+            )}
           </Text>
         )}
 
-        <View style={styles.optionsContainer}>
-          {question.options.map((option, index) => {
-            const isUserAnswer = option.id === question.userAnswer;
-            const isCorrectAnswer = option.isCorrect;
-            let optionStyle = styles.optionRow;
-            let optionTextStyle = styles.optionText;
+        {choices.length > 0 && (
+          <View style={styles.optionsContainer}>
+            {choices.map((choice, index) => {
+              const isUserAnswer = choice.id === userAnswerId;
+              const isCorrectAnswer = choice.is_correct;
+              let optionStyle = styles.optionRow;
+              let optionTextStyle = styles.optionText;
 
-            if (isCorrectAnswer) {
-              optionStyle = [styles.optionRow, styles.correctOption];
-              optionTextStyle = [styles.optionText, styles.correctOptionText];
-            } else if (isUserAnswer && !isCorrectAnswer) {
-              optionStyle = [styles.optionRow, styles.incorrectOption];
-              optionTextStyle = [styles.optionText, styles.incorrectOptionText];
-            }
+              if (isCorrectAnswer) {
+                optionStyle = [styles.optionRow, styles.correctOption];
+                optionTextStyle = [styles.optionText, styles.correctOptionText];
+              } else if (isUserAnswer && !isCorrectAnswer) {
+                optionStyle = [styles.optionRow, styles.incorrectOption];
+                optionTextStyle = [styles.optionText, styles.incorrectOptionText];
+              }
 
-            return (
-              <View key={option.id} style={optionStyle}>
-                <Text style={styles.optionNumber}>{String.fromCharCode(0x2460 + index)}</Text>
-                <Text style={optionTextStyle}>{option.text}</Text>
-                {isCorrectAnswer && (
-                  <Ionicons name="checkmark-circle" size={18} color="#7FDEAD" style={styles.optionIcon} />
-                )}
-                {isUserAnswer && !isCorrectAnswer && (
-                  <Ionicons name="close-circle" size={18} color="#FF6B6B" style={styles.optionIcon} />
-                )}
-              </View>
-            );
-          })}
-        </View>
+              return (
+                <View key={choice.id} style={optionStyle}>
+                  <Text style={styles.optionNumber}>{String.fromCharCode(0x2460 + index)}</Text>
+                  <Text style={optionTextStyle}>{choice.text}</Text>
+                  {isCorrectAnswer && (
+                    <Ionicons name="checkmark-circle" size={18} color="#7FDEAD" style={styles.optionIcon} />
+                  )}
+                  {isUserAnswer && !isCorrectAnswer && (
+                    <Ionicons name="close-circle" size={18} color="#FF6B6B" style={styles.optionIcon} />
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
 
-        {!question.isCorrect && (
+        {!isCorrect && correctChoice && (
           <View style={styles.explanationBox}>
             <Text style={styles.explanationTitle}>Đáp án đúng:</Text>
             <Text style={styles.explanationText}>
-              {String.fromCharCode(0x2460 + question.options.findIndex(opt => opt.isCorrect))} {correctAnswer?.text}
+              {String.fromCharCode(0x2460 + choices.findIndex(c => c.is_correct))} {correctChoice.text}
             </Text>
+            {question.explanation && (
+              <Text style={styles.explanationDetail}>{question.explanation}</Text>
+            )}
           </View>
         )}
       </View>
@@ -192,37 +185,87 @@ export default function JLPTPracticeTestDetailsScreen({ navigation, route }) {
     <View style={styles.container}>
       {/* Tabs */}
       <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'vocabulary' && styles.tabActive]}
-          onPress={() => setActiveTab('vocabulary')}
-          activeOpacity={0.7}
-        >
-          {activeTab === 'vocabulary' && <View style={styles.tabHighlight} />}
-          <Text style={styles.tabText}>文字・語彙</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'grammar' && styles.tabActive]}
-          onPress={() => setActiveTab('grammar')}
-          activeOpacity={0.7}
-        >
-          {activeTab === 'grammar' && <View style={styles.tabHighlight} />}
-          <Text style={styles.tabText}>文法・読解</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'listening' && styles.tabActive]}
-          onPress={() => setActiveTab('listening')}
-          activeOpacity={0.7}
-        >
-          {activeTab === 'listening' && <View style={styles.tabHighlight} />}
-          <Text style={styles.tabText}>聴解</Text>
-        </TouchableOpacity>
+        {testData.sections.map((section, index) => {
+          const isActive = activeTab === section.section_type;
+          return (
+            <TouchableOpacity
+              key={section.id}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveTab(section.section_type)}
+              activeOpacity={0.7}
+            >
+              {isActive && <View style={styles.tabHighlight} />}
+              <Text style={styles.tabText}>{section.title_jp}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {filteredQuestions.map(renderQuestionCard)}
+        {/* Instruction Box */}
+        {currentInstruction && (
+          <View style={styles.instructionBox}>
+            <Text style={styles.instructionText}>
+              {currentInstruction}
+            </Text>
+          </View>
+        )}
+
+        {/* Questions */}
+        {questions.map(renderQuestionCard)}
+
+        {questions.length === 0 && (
+          <View style={{ alignItems: 'center', marginTop: 40 }}>
+            <Text style={{ color: Colors.textSecondary }}>
+              Phần này chưa có câu hỏi
+            </Text>
+          </View>
+        )}
+
+        {/* Navigation Buttons */}
+        <View style={styles.navigationButtons}>
+          {!isFirstSection && (
+            <TouchableOpacity 
+              style={styles.navButton} 
+              activeOpacity={0.7}
+              onPress={() => {
+                const prevSectionType = sectionTypes[currentSectionIndex - 1];
+                setActiveTab(prevSectionType);
+              }}
+            >
+              <Text style={styles.navButtonText}>{'< Trang trước'}</Text>
+            </TouchableOpacity>
+          )}
+          {isLastSection ? (
+            <TouchableOpacity 
+              style={[styles.navButton, styles.retryButton]} 
+              activeOpacity={0.7}
+              onPress={() => {
+                navigation.navigate('JLPTPracticeTest', { 
+                  testId, 
+                  level 
+                });
+              }}
+            >
+              <Text style={styles.navButtonText}>Làm lại</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.navButton, styles.nextButton]} 
+              activeOpacity={0.7}
+              onPress={() => {
+                const nextSectionType = sectionTypes[currentSectionIndex + 1];
+                setActiveTab(nextSectionType);
+              }}
+            >
+              <Text style={styles.navButtonText}>{'Trang sau >'}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <View style={{ height: 20 }} />
       </ScrollView>
     </View>
@@ -233,18 +276,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.backgroundSecondary,
+    alignItems: 'center',
   },
   tabsContainer: {
     flexDirection: 'row',
     width: 300,
     marginTop: 20,
     marginBottom: 20,
-    alignSelf: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+    alignSelf: 'center',
   },
   tab: {
     width: 100,
@@ -278,12 +322,30 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
+  instructionBox: {
+    width: 360,
+    minHeight: 70,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: '#000000',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 20,
+    alignSelf: 'center',
+  },
+  instructionText: {
+    fontFamily: 'Noto Sans JP',
+    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 18,
+    color: Colors.textPrimary,
+  },
   questionCard: {
     width: 360,
-    minHeight: 200,
+    minHeight: 228,
     backgroundColor: Colors.white,
     borderRadius: 5,
-    padding: 15,
+    padding: 10,
     marginBottom: 20,
     alignSelf: 'center',
     shadowColor: '#000',
@@ -296,7 +358,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   questionNumber: {
     fontFamily: 'Nunito',
@@ -378,6 +440,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  questionImage: {
+    width: 249,
+    height: 148,
+    marginBottom: 10,
+    alignSelf: 'center',
+    backgroundColor: '#F0F0F0',
+    borderRadius: 5,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
   sentence: {
     fontFamily: 'Noto Sans JP',
     fontWeight: '400',
@@ -448,5 +522,47 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     fontSize: 14,
     color: Colors.textPrimary,
+  },
+  explanationDetail: {
+    fontFamily: 'Nunito',
+    fontWeight: '400',
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  navigationButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  navButton: {
+    width: 140,
+    height: 40,
+    backgroundColor: Colors.secondary,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  nextButton: {
+    backgroundColor: Colors.secondary,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+  },
+  navButtonText: {
+    fontFamily: 'Nunito',
+    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 19,
+    color: Colors.white,
   },
 });

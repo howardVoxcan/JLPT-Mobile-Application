@@ -1,11 +1,63 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
+import { getListeningLessons } from '../../services/listeningService';
 
 export default function ListeningLevelScreen({ navigation, route }) {
   const { category = 'Nghe hiểu', level = 'N5' } = route?.params || {};
   const [activeFilter, setActiveFilter] = useState('all');
+  const [lessons, setLessons] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load lessons from API
+  useEffect(() => {
+    const loadLessons = async () => {
+      try {
+        setLoading(true);
+        const data = await getListeningLessons(level);
+        
+        // Map data from API
+        const mappedLessons = data.map(lesson => {
+          let borderColor = '#E1E1E1';
+          let buttonText = 'Bắt đầu';
+          let buttonColor = Colors.primary;
+          
+          if (lesson.status === 'completed') {
+            borderColor = Colors.secondary;
+            buttonText = 'Học lại';
+            buttonColor = Colors.secondaryHover;
+          } else if (lesson.status === 'in-progress') {
+            borderColor = '#95D4EB';
+            buttonText = 'Học tiếp';
+            buttonColor = '#95D4EB';
+          }
+          
+          // Format duration
+          const minutes = Math.floor(lesson.duration / 60);
+          const seconds = lesson.duration % 60;
+          const durationText = `${minutes} phút ${seconds} giây`;
+          
+          return {
+            ...lesson,
+            duration: durationText,
+            borderColor,
+            buttonText,
+            buttonColor,
+          };
+        });
+        
+        setLessons(mappedLessons);
+      } catch (error) {
+        console.error('Error loading listening lessons:', error);
+        setLessons([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadLessons();
+  }, [level]);
 
   const handleLessonPress = (lessonId, lessonTitle) => {
     navigation.navigate('ListeningLesson', { 
@@ -16,103 +68,12 @@ export default function ListeningLevelScreen({ navigation, route }) {
     });
   };
 
-  // Mock data - danh sách bài học
-  const lessons = [
-    {
-      id: 1,
-      title: 'Bài 1: Giới thiệu bản thân',
-      description: 'Nghe và hiểu các đoạn giới thiệu cơ bản về bản thân',
-      duration: '2 phút 30 giây',
-      status: 'completed',
-      progress: 100,
-      borderColor: Colors.secondary,
-      buttonText: 'Học lại',
-      buttonColor: Colors.secondaryHover,
-    },
-    {
-      id: 2,
-      title: 'Bài 2: Giới thiệu bản thân',
-      description: 'Nghe và hiểu các đoạn giới thiệu cơ bản về bản thân',
-      duration: '2 phút 30 giây',
-      status: 'completed',
-      progress: 100,
-      borderColor: Colors.secondary,
-      buttonText: 'Học lại',
-      buttonColor: Colors.secondaryHover,
-    },
-    {
-      id: 3,
-      title: 'Bài 3: Giới thiệu bản thân',
-      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
-      duration: '2 phút 30 giây',
-      status: 'in-progress',
-      progress: 60,
-      borderColor: '#95D4EB',
-      buttonText: 'Học tiếp',
-      buttonColor: '#95D4EB',
-    },
-    {
-      id: 4,
-      title: 'Bài 4: Giới thiệu bản thân',
-      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
-      duration: '2 phút 30 giây',
-      status: 'in-progress',
-      progress: 60,
-      borderColor: '#95D4EB',
-      buttonText: 'Học tiếp',
-      buttonColor: '#95D4EB',
-    },
-    {
-      id: 5,
-      title: 'Bài 5: Giới thiệu bản thân',
-      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
-      duration: '2 phút 30 giây',
-      status: 'not-started',
-      progress: 0,
-      borderColor: '#E1E1E1',
-      buttonText: 'Bắt đầu',
-      buttonColor: Colors.primary,
-    },
-    {
-      id: 6,
-      title: 'Bài 6: Giới thiệu bản thân',
-      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
-      duration: '2 phút 30 giây',
-      status: 'not-started',
-      progress: 0,
-      borderColor: '#E1E1E1',
-      buttonText: 'Bắt đầu',
-      buttonColor: Colors.primary,
-    },
-    {
-      id: 7,
-      title: 'Bài 7: Giới thiệu bản thân',
-      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
-      duration: '2 phút 30 giây',
-      status: 'not-started',
-      progress: 0,
-      borderColor: '#E1E1E1',
-      buttonText: 'Bắt đầu',
-      buttonColor: Colors.primary,
-    },
-    {
-      id: 8,
-      title: 'Bài 8: Giới thiệu bản thân',
-      description: 'Hội thoại mua bán tại cửa hàng tiện lợi',
-      duration: '2 phút 30 giây',
-      status: 'not-started',
-      progress: 0,
-      borderColor: '#E1E1E1',
-      buttonText: 'Bắt đầu',
-      buttonColor: Colors.primary,
-    },
-  ];
 
   const completedCount = lessons.filter(l => l.status === 'completed').length;
   const inProgressCount = lessons.filter(l => l.status === 'in-progress').length;
   const notStartedCount = lessons.filter(l => l.status === 'not-started').length;
 
-  const totalProgress = (completedCount / lessons.length) * 100;
+  const totalProgress = lessons.length > 0 ? (completedCount / lessons.length) * 100 : 0;
 
   // Filter lessons based on activeFilter
   const filteredLessons = lessons.filter(lesson => {
@@ -122,6 +83,16 @@ export default function ListeningLevelScreen({ navigation, route }) {
     if (activeFilter === 'not-started') return lesson.status === 'not-started';
     return true;
   });
+
+  // Show loading
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ marginTop: 16, color: Colors.textSecondary }}>Đang tải...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

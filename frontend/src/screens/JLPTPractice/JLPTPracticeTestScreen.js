@@ -1,228 +1,311 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { FontSizes, FontWeights } from '../../constants/Fonts';
+import { getJLPTTestDetail, submitJLPTTest } from '../../services/jlptPracticeService';
 
 export default function JLPTPracticeTestScreen({ navigation, route }) {
   const { testId = 1, level = 'N5' } = route?.params || {};
-  const [activeTab, setActiveTab] = useState('vocabulary'); // 'vocabulary', 'grammar', 'listening'
+  const [activeTab, setActiveTab] = useState('vocabulary');
   const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [testData, setTestData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const timerRef = useRef(null);
 
-  const handleAnswerSelect = (questionId, answer) => {
+  useEffect(() => {
+    loadTest();
+    
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [testId]);
+
+  useEffect(() => {
+    if (testData && timeRemaining > 0) {
+      startTimer();
+    }
+    
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [testData]);
+
+  const loadTest = async () => {
+    try {
+      setLoading(true);
+      const data = await getJLPTTestDetail(testId);
+      setTestData(data);
+      setTimeRemaining(data.duration_minutes * 60); // Convert to seconds
+      
+      // Set active tab to first section type
+      if (data.sections && data.sections.length > 0) {
+        setActiveTab(data.sections[0].section_type);
+      }
+    } catch (error) {
+      console.error('Error loading test:', error);
+      Alert.alert('Lỗi', 'Không thể tải đề thi. Vui lòng thử lại!');
+      navigation.goBack();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    timerRef.current = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          handleAutoSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleAutoSubmit = () => {
+    Alert.alert(
+      'Hết giờ',
+      'Thời gian làm bài đã hết. Bài thi sẽ được nộp tự động.',
+      [{ text: 'OK', onPress: () => handleSubmit() }],
+      { cancelable: false }
+    );
+  };
+
+  const formatTimer = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleAnswerSelect = (questionId, choiceId) => {
     setSelectedAnswers(prev => ({
       ...prev,
-      [questionId]: answer
+      [questionId]: choiceId
     }));
   };
 
-  // Mock questions data
-  const questions = [
-    {
-      id: 1,
-      type: 'vocabulary',
-      questionNumber: 'Câu 1',
-      image: null, // Can add image URL later
-      sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '若い',
-      options: [
-        { id: 1, text: 'ちいさい' },
-        { id: 2, text: 'すくない' },
-        { id: 3, text: 'わかい' },
-        { id: 4, text: 'おさない' },
-      ],
-    },
-    {
-      id: 2,
-      type: 'vocabulary',
-      questionNumber: 'Câu 2',
-      image: null,
-      sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '若い',
-      options: [
-        { id: 1, text: 'ちいさい' },
-        { id: 2, text: 'すくない' },
-        { id: 3, text: 'わかい' },
-        { id: 4, text: 'おさない' },
-      ],
-    },
-    {
-      id: 21,
-      type: 'grammar',
-      questionNumber: 'Câu 21',
-      image: null,
-      sentence: 'この本は＿＿＿読むほど面白くなる。',
-      underlinedWord: '＿＿＿',
-      options: [
-        { id: 1, text: '読む' },
-        { id: 2, text: '読んだ' },
-        { id: 3, text: '読んで' },
-        { id: 4, text: '読めば' },
-      ],
-    },
-    {
-      id: 22,
-      type: 'grammar',
-      questionNumber: 'Câu 22',
-      image: null,
-      sentence: '彼は＿＿＿来ないと言っていた。',
-      underlinedWord: '＿＿＿',
-      options: [
-        { id: 1, text: 'きっと' },
-        { id: 2, text: 'たぶん' },
-        { id: 3, text: 'ぜひ' },
-        { id: 4, text: '必ず' },
-      ],
-    },
-    {
-      id: 89,
-      type: 'listening',
-      questionNumber: 'Câu 89',
-      hasAudio: true,
-      audioDuration: '1:23',
-      image: null,
-      sentence: '若いとき夢中で星座の名前を覚えた。',
-      underlinedWord: '若い',
-      options: [
-        { id: 1, text: 'ちいさい' },
-        { id: 2, text: 'すくない' },
-        { id: 3, text: 'わかい' },
-        { id: 4, text: 'おさない' },
-      ],
-    },
-    {
-      id: 90,
-      type: 'listening',
-      questionNumber: 'Câu 90',
-      hasAudio: true,
-      audioDuration: '1:23',
-      image: null, // Can add image grid later
-      options: [
-        { id: 1, text: '1' },
-        { id: 2, text: '2' },
-        { id: 3, text: '3' },
-        { id: 4, text: '4' },
-      ],
-    },
-  ];
+  const handleSubmit = async () => {
+    // Check if all questions are answered
+    const allQuestions = testData.sections.flatMap(s => s.questions);
+    const unansweredCount = allQuestions.filter(q => !selectedAnswers[q.id]).length;
+    
+    if (unansweredCount > 0) {
+      Alert.alert(
+        'Cảnh báo',
+        `Bạn còn ${unansweredCount} câu chưa trả lời. Bạn có muốn nộp bài không?`,
+        [
+          { text: 'Hủy', style: 'cancel' },
+          { text: 'Nộp bài', onPress: () => submitAnswers() }
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Xác nhận',
+        'Bạn có chắc chắn muốn nộp bài không?',
+        [
+          { text: 'Hủy', style: 'cancel' },
+          { text: 'Nộp bài', onPress: () => submitAnswers() }
+        ]
+      );
+    }
+  };
 
-  const filteredQuestions = questions.filter(q => {
-    if (activeTab === 'vocabulary') return q.type === 'vocabulary';
-    if (activeTab === 'grammar') return q.type === 'grammar';
-    if (activeTab === 'listening') return q.type === 'listening';
-    return true;
-  });
+  const submitAnswers = async () => {
+    try {
+      setSubmitting(true);
+      
+      // Stop timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      // Format answers for API
+      const formattedAnswers = Object.entries(selectedAnswers).map(([qId, cId]) => ({
+        question_id: parseInt(qId),
+        choice_id: cId
+      }));
+      
+      const result = await submitJLPTTest(testId, formattedAnswers);
+      
+      // Navigate to result screen
+      navigation.replace('JLPTPracticeResult', {
+        attemptId: result.attempt_id,
+        testId: testId,
+        level: level,
+        resultData: result
+      });
+    } catch (error) {
+      console.error('Error submitting test:', error);
+      Alert.alert('Lỗi', 'Không thể nộp bài. Vui lòng thử lại!');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-  const renderAudioPlayer = (duration) => (
-    <View style={styles.audioPlayer}>
-      <TouchableOpacity style={styles.playButton}>
-        <Ionicons name="play" size={22} color="#000000" />
-      </TouchableOpacity>
-      <Text style={styles.audioTime}>0:00 / {duration}</Text>
-      <View style={styles.timeline}>
-        <View style={styles.timelineBg} />
-        <View style={styles.timelineFill} />
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ marginTop: 16, color: Colors.textSecondary }}>Đang tải đề thi...</Text>
       </View>
-      <TouchableOpacity style={styles.audioControl}>
-        <Ionicons name="volume-high-outline" size={22} color="#000000" />
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.audioControl}>
-        <Ionicons name="ellipsis-vertical" size={22} color="#000000" />
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  }
 
-  const renderQuestionCard = (question) => (
-    <View key={question.id} style={styles.questionCard}>
-      <Text style={styles.questionNumber}>{question.questionNumber}</Text>
-      
-      {question.hasAudio && renderAudioPlayer(question.audioDuration)}
-      
-      {question.image && (
-        <View style={styles.questionImage}>
-          <Image source={{ uri: question.image }} style={styles.image} resizeMode="contain" />
-        </View>
-      )}
-      
-      {question.sentence && (
-        <Text style={styles.sentence}>
-          {question.sentence.split(question.underlinedWord).map((part, index, array) => (
-            <Text key={index}>
-              {part}
-              {index < array.length - 1 && <Text style={styles.underlinedWord}>{question.underlinedWord}</Text>}
-            </Text>
-          ))}
-        </Text>
-      )}
-
-      {question.options && (
-        <View style={styles.optionsContainer}>
-          {question.options.map((option) => (
-            <View key={option.id} style={styles.optionRow}>
-              <Text style={styles.optionNumber}>①</Text>
-              <Text style={styles.optionText}>{option.text}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      <View style={styles.radioButtonsRow}>
-        {[1, 2, 3, 4].map((num) => (
-          <TouchableOpacity
-            key={num}
-            style={styles.radioButtonGroup}
-            onPress={() => handleAnswerSelect(question.id, num)}
-            activeOpacity={0.7}
-          >
-            <View style={[
-              styles.radioOuter,
-              selectedAnswers[question.id] === num && styles.radioOuterSelected
-            ]}>
-              {selectedAnswers[question.id] === num && (
-                <View style={styles.radioInner} />
-              )}
-            </View>
-            <Text style={styles.radioLabel}>{num}</Text>
-          </TouchableOpacity>
-        ))}
+  if (!testData) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: Colors.textSecondary }}>Không tìm thấy đề thi</Text>
       </View>
-    </View>
-  );
+    );
+  }
+
+  // Get current section and questions
+  const currentSection = testData.sections.find(s => s.section_type === activeTab);
+  const questions = currentSection?.questions || [];
+  const currentInstruction = questions.length > 0 ? questions[0].instruction : '';
+  
+  // Get section order for navigation
+  const sectionTypes = testData.sections.map(s => s.section_type);
+  const currentSectionIndex = sectionTypes.indexOf(activeTab);
+  const isFirstSection = currentSectionIndex === 0;
+  const isLastSection = currentSectionIndex === sectionTypes.length - 1;
+
+  const renderAudioPlayer = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    const durationText = `${minutes}:${secs.toString().padStart(2, '0')}`;
+    
+    return (
+      <View style={styles.audioPlayer}>
+        <TouchableOpacity style={styles.playButton}>
+          <Ionicons name="play" size={22} color="#000000" />
+        </TouchableOpacity>
+        <Text style={styles.audioTime}>0:00 / {durationText}</Text>
+        <View style={styles.timeline}>
+          <View style={styles.timelineBg} />
+          <View style={styles.timelineFill} />
+        </View>
+        <TouchableOpacity style={styles.audioControl}>
+          <Ionicons name="volume-high-outline" size={22} color="#000000" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.audioControl}>
+          <Ionicons name="ellipsis-vertical" size={22} color="#000000" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderQuestionCard = (question) => {
+    const choices = question.choices || [];
+    
+    return (
+      <View key={question.id} style={styles.questionCard}>
+        <Text style={styles.questionNumber}>Câu {question.question_number}</Text>
+        
+        {question.audio_url && question.duration_seconds && renderAudioPlayer(question.duration_seconds)}
+        
+        {question.image_url && (
+          <View style={styles.questionImage}>
+            <Image source={{ uri: question.image_url }} style={styles.image} resizeMode="contain" />
+          </View>
+        )}
+        
+        {question.sentence && (
+          <Text style={styles.sentence}>
+            {question.underlined_word ? (
+              question.sentence.split(question.underlined_word).map((part, index, array) => (
+                <Text key={index}>
+                  {part}
+                  {index < array.length - 1 && <Text style={styles.underlinedWord}>{question.underlined_word}</Text>}
+                </Text>
+              ))
+            ) : (
+              question.sentence
+            )}
+          </Text>
+        )}
+
+        {choices.length > 0 && (
+          <View style={styles.optionsContainer}>
+            {choices.map((choice, index) => (
+              <View key={choice.id} style={styles.optionRow}>
+                <Text style={styles.optionNumber}>{String.fromCharCode(0x2460 + index)}</Text>
+                <Text style={styles.optionText}>{choice.text}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.radioButtonsRow}>
+          {choices.map((choice, index) => {
+            const isSelected = selectedAnswers[question.id] === choice.id;
+            
+            return (
+              <TouchableOpacity
+                key={choice.id}
+                style={styles.radioButtonGroup}
+                onPress={() => handleAnswerSelect(question.id, choice.id)}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.radioOuter,
+                  isSelected && styles.radioOuterSelected
+                ]}>
+                  {isSelected && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+                <Text style={styles.radioLabel}>{index + 1}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
       {/* Timer */}
       <View style={styles.timerContainer}>
         <Ionicons name="alarm-outline" size={26} color={Colors.textPrimary} />
-        <Text style={styles.timerText}>1:15:54</Text>
+        <Text style={[
+          styles.timerText,
+          timeRemaining < 300 && { color: '#FF6B6B' } // Red if less than 5 minutes
+        ]}>
+          {formatTimer(timeRemaining)}
+        </Text>
       </View>
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'vocabulary' && styles.tabActive]}
-          onPress={() => setActiveTab('vocabulary')}
-          activeOpacity={0.7}
-        >
-          {activeTab === 'vocabulary' && <View style={styles.tabHighlight} />}
-          <Text style={styles.tabText}>文字・語彙</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'grammar' && styles.tabActive]}
-          onPress={() => setActiveTab('grammar')}
-          activeOpacity={0.7}
-        >
-          {activeTab === 'grammar' && <View style={styles.tabHighlight} />}
-          <Text style={styles.tabText}>文法・読解</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'listening' && styles.tabActive]}
-          onPress={() => setActiveTab('listening')}
-          activeOpacity={0.7}
-        >
-          {activeTab === 'listening' && <View style={styles.tabHighlight} />}
-          <Text style={styles.tabText}>聴解</Text>
-        </TouchableOpacity>
+        {testData.sections.map((section, index) => {
+          const isActive = activeTab === section.section_type;
+          return (
+            <TouchableOpacity
+              key={section.id}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveTab(section.section_type)}
+              activeOpacity={0.7}
+            >
+              {isActive && <View style={styles.tabHighlight} />}
+              <Text style={styles.tabText}>{section.title_jp}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <ScrollView 
@@ -230,52 +313,59 @@ export default function JLPTPracticeTestScreen({ navigation, route }) {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Instruction Box */}
-        <View style={styles.instructionBox}>
-          <Text style={styles.instructionText}>
-            問題＿＿＿の読み方として最もよいものを、１・２・３・４から一つ選びなさい。
-          </Text>
-        </View>
+        {currentInstruction && (
+          <View style={styles.instructionBox}>
+            <Text style={styles.instructionText}>
+              {currentInstruction}
+            </Text>
+          </View>
+        )}
 
         {/* Questions */}
-        {filteredQuestions.map(renderQuestionCard)}
+        {questions.map(renderQuestionCard)}
+
+        {questions.length === 0 && (
+          <View style={{ alignItems: 'center', marginTop: 40 }}>
+            <Text style={{ color: Colors.textSecondary }}>
+              Phần này chưa có câu hỏi
+            </Text>
+          </View>
+        )}
 
         {/* Navigation Buttons */}
         <View style={styles.navigationButtons}>
-          {activeTab !== 'vocabulary' && (
+          {!isFirstSection && (
             <TouchableOpacity 
               style={styles.navButton} 
               activeOpacity={0.7}
               onPress={() => {
-                if (activeTab === 'grammar') {
-                  setActiveTab('vocabulary');
-                } else if (activeTab === 'listening') {
-                  setActiveTab('grammar');
-                }
+                const prevSectionType = sectionTypes[currentSectionIndex - 1];
+                setActiveTab(prevSectionType);
               }}
             >
               <Text style={styles.navButtonText}>{'< Trang trước'}</Text>
             </TouchableOpacity>
           )}
-          {activeTab === 'listening' ? (
+          {isLastSection ? (
             <TouchableOpacity 
               style={[styles.navButton, styles.submitButton]} 
               activeOpacity={0.7}
-              onPress={() => {
-                navigation.navigate('JLPTPracticeResult', { testId, level });
-              }}
+              onPress={handleSubmit}
+              disabled={submitting}
             >
-              <Text style={styles.navButtonText}>Nộp bài</Text>
+              {submitting ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <Text style={styles.navButtonText}>Nộp bài</Text>
+              )}
             </TouchableOpacity>
           ) : (
             <TouchableOpacity 
               style={[styles.navButton, styles.nextButton]} 
               activeOpacity={0.7}
               onPress={() => {
-                if (activeTab === 'vocabulary') {
-                  setActiveTab('grammar');
-                } else if (activeTab === 'grammar') {
-                  setActiveTab('listening');
-                }
+                const nextSectionType = sectionTypes[currentSectionIndex + 1];
+                setActiveTab(nextSectionType);
               }}
             >
               <Text style={styles.navButtonText}>{'Trang sau >'}</Text>

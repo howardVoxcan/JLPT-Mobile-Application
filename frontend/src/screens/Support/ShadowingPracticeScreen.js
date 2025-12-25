@@ -1,43 +1,201 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
+import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '../../constants/Colors';
 import { FontSizes, FontWeights } from '../../constants/Fonts';
+import { getVoices, createShadowingSession } from '../../services/shadowingService';
 
 export default function ShadowingPracticeScreen({ navigation, route }) {
   const [activeTab, setActiveTab] = useState('text'); // 'text' or 'image'
   const [textInput, setTextInput] = useState('');
-  const [voice, setVoice] = useState('あおい');
-  const [speed, setSpeed] = useState('1.0');
-  const [pitch, setPitch] = useState('0');
+  const [voices, setVoices] = useState([]);
+  const [selectedVoice, setSelectedVoice] = useState(null);
+  const [speed, setSpeed] = useState(1.0);
+  const [pitch, setPitch] = useState(0);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isVoiceCreated, setIsVoiceCreated] = useState(false);
-  const [audioDuration, setAudioDuration] = useState('1:23');
+  const [audioDuration, setAudioDuration] = useState('0:00');
   const [currentTime, setCurrentTime] = useState('0:00');
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [sessionData, setSessionData] = useState(null);
+  const [sound, setSound] = useState(null);
 
-  const handleCreateVoice = () => {
-    // TODO: Implement voice creation logic
-    console.log('Creating voice with:', { textInput, voice, speed, pitch, selectedImage });
-    setIsVoiceCreated(true);
-    // Simulate audio generation
-    setAudioDuration('1:23');
+  /* ======================
+     LOAD VOICES ON MOUNT
+     ====================== */
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchVoices = async () => {
+      try {
+        setLoading(true);
+        const data = await getVoices();
+        if (mounted) {
+          setVoices(data);
+          if (data.length > 0) {
+            setSelectedVoice(data[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Load voices error:', error);
+        Alert.alert('Lỗi', 'Không thể tải danh sách giọng đọc');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchVoices();
+    return () => {
+      mounted = false;
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, []);
+
+  /* ======================
+     CREATE VOICE SESSION
+     ====================== */
+  const handleCreateVoice = async () => {
+    if (activeTab === 'text' && !textInput.trim()) {
+      Alert.alert('Thông báo', 'Vui lòng nhập văn bản để tạo giọng nói');
+      return;
+    }
+
+    if (activeTab === 'image' && !selectedImage) {
+      Alert.alert('Thông báo', 'Vui lòng chọn hình ảnh để tạo giọng nói');
+      return;
+    }
+
+    if (!selectedVoice) {
+      Alert.alert('Thông báo', 'Vui lòng chọn giọng đọc');
+      return;
+    }
+
+    try {
+      setCreating(true);
+
+      const data = {
+        input_type: activeTab,
+        text_input: activeTab === 'text' ? textInput : '',
+        image: activeTab === 'image' ? selectedImage : null,
+        voice: selectedVoice.id,
+        speed: speed,
+        pitch: pitch,
+      };
+
+      const result = await createShadowingSession(data);
+      setSessionData(result);
+      setAudioDuration(result.audio_duration || '0:00');
+      setIsVoiceCreated(true);
+
+      Alert.alert('Thành công', 'Đã tạo giọng nói thành công!');
+    } catch (error) {
+      console.error('Create voice error:', error);
+      Alert.alert('Lỗi', error.response?.data?.detail || 'Không thể tạo giọng nói');
+    } finally {
+      setCreating(false);
+    }
   };
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    // TODO: Implement audio playback logic
+  /* ======================
+     AUDIO PLAYBACK
+     ====================== */
+  const handlePlayPause = async () => {
+    if (!sessionData?.audio_url) {
+      Alert.alert('Thông báo', 'Không có file âm thanh để phát');
+      return;
+    }
+
+    try {
+      if (sound) {
+        const status = await sound.getStatusAsync();
+        if (status.isLoaded) {
+          if (isPlaying) {
+            await sound.pauseAsync();
+            setIsPlaying(false);
+          } else {
+            await sound.playAsync();
+            setIsPlaying(true);
+          }
+        }
+      } else {
+        // Load and play audio
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: sessionData.audio_url },
+          { shouldPlay: true },
+          onPlaybackStatusUpdate
+        );
+        setSound(newSound);
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error('Playback error:', error);
+      Alert.alert('Lỗi', 'Không thể phát audio');
+    }
   };
 
+  const onPlaybackStatusUpdate = (status) => {
+    if (status.isLoaded) {
+      if (status.positionMillis && status.durationMillis) {
+        const progressPercent = (status.positionMillis / status.durationMillis) * 100;
+        setProgress(progressPercent);
+
+        const currentMin = Math.floor(status.positionMillis / 60000);
+        const currentSec = Math.floor((status.positionMillis % 60000) / 1000);
+        setCurrentTime(`${currentMin}:${currentSec.toString().padStart(2, '0')}`);
+      }
+
+      if (status.didJustFinish) {
+        setIsPlaying(false);
+        setProgress(0);
+        setCurrentTime('0:00');
+      }
+    }
+  };
+
+  /* ======================
+     IMAGE PICKER
+     ====================== */
+  const handleImageUpload = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Thông báo', 'Cần quyền truy cập thư viện ảnh');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedImage(result.assets[0]);
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert('Lỗi', 'Không thể chọn hình ảnh');
+    }
+  };
+
+  /* ======================
+     DOWNLOAD AUDIO
+     ====================== */
   const handleDownload = () => {
-    // TODO: Implement audio download logic
-    console.log('Downloading audio file');
-  };
-
-  const handleImageUpload = () => {
-    // TODO: Implement image picker
-    console.log('Upload image');
+    if (!sessionData?.audio_url) {
+      Alert.alert('Thông báo', 'Không có file âm thanh để tải');
+      return;
+    }
+    // TODO: Implement actual download logic for mobile
+    Alert.alert('Thông báo', 'Tính năng tải xuống đang được phát triển');
   };
 
   const renderAudioPlayer = () => (
@@ -114,6 +272,15 @@ export default function ShadowingPracticeScreen({ navigation, route }) {
     );
   }
 
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Đang tải giọng đọc...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView 
@@ -160,7 +327,7 @@ export default function ShadowingPracticeScreen({ navigation, route }) {
             activeOpacity={0.7}
           >
             {selectedImage ? (
-              <Image source={{ uri: selectedImage }} style={styles.uploadedImage} />
+              <Image source={{ uri: selectedImage.uri }} style={styles.uploadedImage} />
             ) : (
               <>
                 <View style={styles.imagePlaceholder}>
@@ -181,7 +348,9 @@ export default function ShadowingPracticeScreen({ navigation, route }) {
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Giọng đọc</Text>
             <TouchableOpacity style={styles.dropdown} activeOpacity={0.7}>
-              <Text style={styles.dropdownText}>{voice}</Text>
+              <Text style={styles.dropdownText}>
+                {selectedVoice?.name || 'Chọn giọng'}
+              </Text>
               <Ionicons name="chevron-down" size={14} color={Colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -190,7 +359,7 @@ export default function ShadowingPracticeScreen({ navigation, route }) {
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Tốc độ</Text>
             <TouchableOpacity style={styles.dropdown} activeOpacity={0.7}>
-              <Text style={styles.dropdownText}>{speed}</Text>
+              <Text style={styles.dropdownText}>{speed.toFixed(1)}</Text>
               <Ionicons name="chevron-down" size={14} color={Colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -207,11 +376,16 @@ export default function ShadowingPracticeScreen({ navigation, route }) {
 
         {/* Create Voice Button */}
         <TouchableOpacity 
-          style={styles.createButton}
+          style={[styles.createButton, creating && styles.createButtonDisabled]}
           onPress={handleCreateVoice}
           activeOpacity={0.7}
+          disabled={creating}
         >
-          <Text style={styles.createButtonText}>Tạo giọng nói</Text>
+          {creating ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text style={styles.createButtonText}>Tạo giọng nói</Text>
+          )}
         </TouchableOpacity>
 
         <View style={{ height: 20 }} />
@@ -387,6 +561,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     color: Colors.white,
+  },
+  createButtonDisabled: {
+    opacity: 0.6,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: Colors.textSecondary,
   },
   audioPlayer: {
     flexDirection: 'row',
